@@ -67,6 +67,12 @@
             background: #094bb5;
         }
 
+        button:disabled {
+            background: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+
         .note {
             font-size: 12px;
             color: #666;
@@ -124,6 +130,23 @@
         .loading {
             color: #666;
             font-style: italic;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #666;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-right: 5px;
+            vertical-align: middle;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
         }
     </style>
 </head>
@@ -207,7 +230,7 @@
     >
     <div id="pincode-validation" class="validation-message"></div>
 
-    <button onclick="saveAddress()" data-i18n="save_continue">
+    <button id="save-btn" onclick="saveAddress()" data-i18n="save_continue" disabled>
         Save & Continue
     </button>
 
@@ -239,7 +262,54 @@
     }
 
     // 🔑 Groq API Key
-    const GROQ_API_KEY = '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';
+    let GROQ_API_KEY = null;
+    let isKeyLoading = false;
+
+    async function getGroqKey() {
+        if (GROQ_API_KEY) {
+            return GROQ_API_KEY;
+        }
+        
+        if (isKeyLoading) {
+            // Wait for existing request
+            while (isKeyLoading) {
+                await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            return GROQ_API_KEY;
+        }
+
+        try {
+            isKeyLoading = true;
+            const res = await fetch('/api/groq-key');
+            
+            if (!res.ok) {
+                throw new Error(`Failed to fetch API key: ${res.status}`);
+            }
+            
+            const data = await res.json();
+            
+            if (!data.key) {
+                throw new Error('No API key in response');
+            }
+            
+            GROQ_API_KEY = data.key;
+            console.log('API key loaded successfully');
+            return GROQ_API_KEY;
+        } catch (error) {
+            console.error('Error fetching Groq API key:', error);
+            throw error;
+        } finally {
+            isKeyLoading = false;
+        }
+    }
+
+    // Pre-load API key on page load
+    getGroqKey().catch(err => {
+        console.error('Failed to pre-load API key:', err);
+    });
+
+    // Suggestion cache to avoid redundant API calls
+    const suggestionCache = new Map();
 
     // Autocomplete functionality
     let districtTimeout, tehsilTimeout;
@@ -250,37 +320,143 @@
     const districtSuggestions = document.getElementById('district-suggestions');
     const tehsilSuggestions = document.getElementById('tehsil-suggestions');
     const pincodeValidation = document.getElementById('pincode-validation');
+    const saveBtn = document.getElementById('save-btn');
 
-    // Generate suggestions using Groq AI
+    // Track validation states
+    let isPincodeValid = false;
+    let isPincodeValidated = false;
+
+    // Check if form is ready to submit
+    function checkFormValidity() {
+        const state = stateSelect.value.trim();
+        const district = districtInput.value.trim();
+        const tehsil = tehsilInput.value.trim();
+        const pincode = pincodeInput.value.trim();
+        
+        const isFormFilled = state && district && tehsil && /^[0-9]{6}$/.test(pincode);
+        const canSubmit = isFormFilled && isPincodeValidated;
+        
+        saveBtn.disabled = !canSubmit;
+    }
+
+    // Predefined district data for faster suggestions (fallback)
+    const districtData = {
+        "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool", "Rajahmundry", "Tirupati", "Kadapa", "Kakinada", "Anantapur", "Vizianagaram", "Eluru", "Ongole", "Nandyal", "Machilipatnam"],
+        "Arunachal Pradesh": ["Itanagar", "Naharlagun", "Pasighat", "Tawang", "Ziro", "Bomdila", "Tezu", "Seppa", "Changlang", "Anini"],
+        "Assam": ["Guwahati", "Dibrugarh", "Jorhat", "Nagaon", "Tinsukia", "Silchar", "Tezpur", "Bongaigaon", "Dhubri", "Goalpara", "Kamrup", "Cachar", "Barpeta", "Karimganj", "Sivasagar"],
+        "Bihar": ["Patna", "Gaya", "Bhagalpur", "Muzaffarpur", "Darbhanga", "Purnia", "Arrah", "Begusarai", "Katihar", "Munger", "Saharsa", "Sasaram", "Hajipur", "Dehri", "Siwan", "Motihari", "Nawada", "Bagaha", "Buxar", "Kishanganj"],
+        "Chhattisgarh": ["Raipur", "Bhilai", "Bilaspur", "Korba", "Durg", "Rajnandgaon", "Jagdalpur", "Raigarh", "Ambikapur", "Mahasamund"],
+        "Goa": ["Panaji", "Margao", "Vasco da Gama", "Mapusa", "Ponda", "Bicholim", "Curchorem", "Sanquelim", "Quepem", "Canacona"],
+        "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Bhavnagar", "Jamnagar", "Junagadh", "Gandhinagar", "Anand", "Nadiad", "Mehsana", "Morbi", "Surendranagar", "Bharuch", "Vapi"],
+        "Haryana": ["Faridabad", "Gurgaon", "Panipat", "Ambala", "Yamunanagar", "Rohtak", "Hisar", "Karnal", "Sonipat", "Panchkula", "Bhiwani", "Sirsa", "Bahadurgarh", "Jind", "Thanesar"],
+        "Himachal Pradesh": ["Shimla", "Dharamshala", "Solan", "Mandi", "Palampur", "Baddi", "Nahan", "Sundernagar", "Chamba", "Una", "Hamirpur", "Bilaspur", "Kullu", "Kangra", "Kinnaur"],
+        "Jharkhand": ["Ranchi", "Jamshedpur", "Dhanbad", "Bokaro", "Deoghar", "Hazaribagh", "Giridih", "Ramgarh", "Medininagar", "Chirkunda", "West Singhbhum", "East Singhbhum", "Saraikela Kharsawan", "Dumka", "Pakur"],
+        "Karnataka": ["Bangalore", "Mysore", "Mangalore", "Hubli", "Belgaum", "Gulbarga", "Shimoga", "Tumkur", "Bellary", "Bijapur", "Davangere", "Dharwad", "Raichur", "Hassan", "Chitradurga"],
+        "Kerala": ["Thiruvananthapuram", "Kochi", "Kozhikode", "Thrissur", "Kollam", "Palakkad", "Alappuzha", "Malappuram", "Kannur", "Kasaragod", "Pathanamthitta", "Kottayam", "Idukki", "Ernakulam", "Wayanad"],
+        "Madhya Pradesh": ["Indore", "Bhopal", "Jabalpur", "Gwalior", "Ujjain", "Sagar", "Dewas", "Satna", "Ratlam", "Rewa", "Katni", "Singrauli", "Burhanpur", "Khandwa", "Morena"],
+        "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad", "Solapur", "Amravati", "Kolhapur", "Sangli", "Jalgaon", "Akola", "Latur", "Dhule", "Ahmednagar", "Chandrapur", "Parbhani", "Ratnagiri", "Satara", "Yavatmal"],
+        "Manipur": ["Imphal", "Thoubal", "Bishnupur", "Churachandpur", "Senapati", "Ukhrul", "Chandel", "Tamenglong", "Jiribam", "Kakching"],
+        "Meghalaya": ["Shillong", "Tura", "Jowai", "Nongstoin", "Williamnagar", "Baghmara", "Nongpoh", "Resubelpara", "Mairang", "Cherrapunji"],
+        "Mizoram": ["Aizawl", "Lunglei", "Champhai", "Serchhip", "Kolasib", "Lawngtlai", "Saiha", "Mamit", "Khawzawl", "Saitual"],
+        "Nagaland": ["Kohima", "Dimapur", "Mokokchung", "Tuensang", "Wokha", "Zunheboto", "Phek", "Mon", "Longleng", "Kiphire", "Peren"],
+        "Odisha": ["Bhubaneswar", "Cuttack", "Rourkela", "Berhampur", "Sambalpur", "Puri", "Balasore", "Bhadrak", "Baripada", "Jeypore", "Angul", "Jharsuguda", "Rayagada", "Koraput", "Kendrapara"],
+        "Punjab": ["Ludhiana", "Amritsar", "Jalandhar", "Patiala", "Bathinda", "Mohali", "Hoshiarpur", "Batala", "Pathankot", "Moga", "Abohar", "Malerkotla", "Khanna", "Phagwara", "Muktsar"],
+        "Rajasthan": ["Jaipur", "Jodhpur", "Kota", "Bikaner", "Ajmer", "Udaipur", "Bhilwara", "Alwar", "Bharatpur", "Sikar", "Pali", "Tonk", "Kishangarh", "Beawar", "Hanumangarh"],
+        "Sikkim": ["Gangtok", "Namchi", "Gyalshing", "Mangan", "Rangpo", "Jorethang", "Singtam", "Ravangla", "Pelling", "Yuksom"],
+        "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli", "Kanchipuram", "Vellore", "Erode", "Thoothukudi", "Thanjavur", "Dindigul", "Tiruppur", "Ranipet", "Nagercoil", "Karur", "Hosur", "Pollachi", "Cuddalore", "Tiruvannamalai"],
+        "Telangana": ["Hyderabad", "Warangal", "Nizamabad", "Khammam", "Karimnagar", "Ramagundam", "Mahbubnagar", "Nalgonda", "Adilabad", "Suryapet", "Siddipet", "Miryalaguda", "Jagtial", "Mancherial", "Nirmal"],
+        "Tripura": ["Agartala", "Dharmanagar", "Udaipur", "Kailasahar", "Belonia", "Khowai", "Ambassa", "Teliamura", "Sabroom", "Amarpur"],
+        "Uttar Pradesh": ["Lucknow", "Kanpur", "Ghaziabad", "Agra", "Varanasi", "Meerut", "Prayagraj", "Bareilly", "Aligarh", "Moradabad", "Saharanpur", "Gorakhpur", "Noida", "Firozabad", "Jhansi", "Muzaffarnagar", "Mathura", "Budaun", "Rampur", "Shahjahanpur"],
+        "Uttarakhand": ["Dehradun", "Haridwar", "Roorkee", "Haldwani", "Rudrapur", "Kashipur", "Rishikesh", "Pithoragarh", "Almora", "Nainital", "Tehri", "Chamoli", "Pauri", "Uttarkashi", "Bageshwar"],
+        "West Bengal": ["Kolkata", "Howrah", "Durgapur", "Asansol", "Siliguri", "Bardhaman", "Malda", "Baharampur", "Habra", "Kharagpur", "Darjeeling", "Jalpaiguri", "Purulia", "Bankura", "Birbhum", "Murshidabad", "Nadia", "North 24 Parganas", "South 24 Parganas", "Hooghly"]
+    };
+
+    // Generate suggestions using Groq AI with caching and fallback
     async function generateSuggestions(type, state, partial) {
+        const cacheKey = `${type}-${state}-${partial.toLowerCase()}`;
+        
+        // Check cache first
+        if (suggestionCache.has(cacheKey)) {
+            console.log('Using cached suggestions for:', cacheKey);
+            return suggestionCache.get(cacheKey);
+        }
+
+        // For districts, try predefined data first for instant results
+        if (type === 'district' && districtData[state]) {
+            const filtered = districtData[state]
+                .filter(d => d.toLowerCase().includes(partial.toLowerCase()))
+                .slice(0, 5);
+            if (filtered.length > 0) {
+                console.log('Using predefined district data:', filtered);
+                suggestionCache.set(cacheKey, filtered);
+                return filtered;
+            }
+        }
+
         const prompt = type === 'district' 
-            ? `List only the top 5 districts in ${state}, India that start with or contain "${partial}". Return ONLY a JSON array of district names, nothing else. Format: ["District1", "District2", ...]`
-            : `List only the top 5 tehsils/taluks in ${districtInput.value} district, ${state}, India that start with or contain "${partial}". Return ONLY a JSON array of tehsil names, nothing else. Format: ["Tehsil1", "Tehsil2", ...]`;
+            ? `List exactly 5 most common districts in ${state}, India that match or contain "${partial}". Return ONLY a valid JSON array of strings. Example: ["Patna","Gaya","Bhagalpur","Muzaffarpur","Nalanda"]`
+            : `List exactly 5 most common tehsils/taluks in ${districtInput.value} district, ${state}, India that match or contain "${partial}". Return ONLY a valid JSON array of strings. Example: ["Tehsil1","Tehsil2","Tehsil3","Tehsil4","Tehsil5"]`;
 
         try {
+            const apiKey = await getGroqKey();
+            
+            if (!apiKey) {
+                console.error('No API key available');
+                return [];
+            }
+
+            console.log('Calling Groq API for:', type, state, partial);
+            
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${GROQ_API_KEY}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     model: 'llama-3.3-70b-versatile',
-                    messages: [{ role: 'user', content: prompt }],
-                    temperature: 0.3,
+                    messages: [{ 
+                        role: 'user', 
+                        content: prompt 
+                    }],
+                    temperature: 0.1,
                     max_tokens: 200
                 })
             });
 
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Groq API Error:', response.status, errorText);
+                return [];
+            }
+
             const data = await response.json();
+            
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                console.error('Invalid API response structure:', data);
+                return [];
+            }
+            
             const content = data.choices[0].message.content.trim();
+            console.log('AI Response:', content);
             
             // Extract JSON array from response
             const jsonMatch = content.match(/\[.*?\]/s);
             if (jsonMatch) {
-                return JSON.parse(jsonMatch[0]);
+                try {
+                    const suggestions = JSON.parse(jsonMatch[0]);
+                    console.log('Parsed suggestions:', suggestions);
+                    // Cache the result
+                    suggestionCache.set(cacheKey, suggestions);
+                    return suggestions;
+                } catch (parseError) {
+                    console.error('JSON parse error:', parseError, 'Content:', content);
+                    return [];
+                }
+            } else {
+                console.error('No JSON array found in response:', content);
+                return [];
             }
-            return [];
         } catch (error) {
             console.error('Error generating suggestions:', error);
             return [];
@@ -308,6 +484,11 @@
                     tehsilInput.value = '';
                     tehsilInput.focus();
                 }
+                
+                // Reset pincode validation when district changes
+                isPincodeValid = false;
+                isPincodeValidated = false;
+                checkFormValidity();
             };
             container.appendChild(div);
         });
@@ -315,41 +496,61 @@
         container.classList.add('active');
     }
 
-    // District autocomplete
+    // District autocomplete - reduced debounce time for faster response
     districtInput.addEventListener('input', function() {
         const state = stateSelect.value;
         const partial = this.value.trim();
 
         clearTimeout(districtTimeout);
         
-        if (!state || partial.length < 2) {
+        // Reset pincode validation when district changes
+        isPincodeValid = false;
+        isPincodeValidated = false;
+        checkFormValidity();
+        
+        if (!state) {
             districtSuggestions.classList.remove('active');
             return;
         }
 
+        // Show suggestions immediately if user has typed anything
+        if (partial.length === 0) {
+            districtSuggestions.classList.remove('active');
+            return;
+        }
+
+        // Reduced from 500ms to 300ms for faster response
         districtTimeout = setTimeout(async () => {
             const suggestions = await generateSuggestions('district', state, partial);
             showSuggestions(suggestions, districtSuggestions, districtInput);
-        }, 500);
+        }, 300);
     });
 
-    // Tehsil autocomplete
+    // Tehsil autocomplete - reduced debounce time
     tehsilInput.addEventListener('input', function() {
         const state = stateSelect.value;
         const district = districtInput.value.trim();
         const partial = this.value.trim();
 
         clearTimeout(tehsilTimeout);
+        checkFormValidity();
         
-        if (!state || !district || partial.length < 2) {
+        if (!state || !district) {
             tehsilSuggestions.classList.remove('active');
             return;
         }
 
+        // Show suggestions immediately if user has typed anything
+        if (partial.length === 0) {
+            tehsilSuggestions.classList.remove('active');
+            return;
+        }
+
+        // Reduced from 500ms to 300ms for faster response
         tehsilTimeout = setTimeout(async () => {
             const suggestions = await generateSuggestions('tehsil', state, partial);
             showSuggestions(suggestions, tehsilSuggestions, tehsilInput);
-        }, 500);
+        }, 300);
     });
 
     // Close suggestions when clicking outside
@@ -367,6 +568,9 @@
         pincodeInput.value = '';
         pincodeValidation.textContent = '';
         pincodeValidation.className = 'validation-message';
+        isPincodeValid = false;
+        isPincodeValidated = false;
+        checkFormValidity();
     });
 
     // Clear pincode and validation when district changes
@@ -374,17 +578,9 @@
         pincodeInput.value = '';
         pincodeValidation.textContent = '';
         pincodeValidation.className = 'validation-message';
-    });
-
-    // Also trigger on blur (when user clicks away after typing)
-    districtInput.addEventListener('blur', function() {
-        const currentDistrict = this.value.trim();
-        const pincode = pincodeInput.value.trim();
-        
-        // If there's a pincode and district changed, revalidate
-        if (pincode && /^[0-9]{6}$/.test(pincode)) {
-            pincodeInput.dispatchEvent(new Event('input'));
-        }
+        isPincodeValid = false;
+        isPincodeValidated = false;
+        checkFormValidity();
     });
 
     // Pincode validation
@@ -393,8 +589,13 @@
         const state = stateSelect.value;
         const district = districtInput.value.trim();
 
+        isPincodeValidated = false;
+        isPincodeValid = false;
+        checkFormValidity();
+
         if (!/^[0-9]{6}$/.test(pincode)) {
             pincodeValidation.textContent = '';
+            pincodeValidation.className = 'validation-message';
             return;
         }
 
@@ -405,12 +606,16 @@
         }
 
         pincodeValidation.className = 'validation-message loading';
-        pincodeValidation.textContent = 'Validating pincode...';
+        pincodeValidation.innerHTML = '<span class="spinner"></span>Validating pincode...';
 
         try {
+            console.log('Validating pincode:', pincode, 'for', district, state);
+            
             // First try India Post API
             const response = await fetch(`https://api.postalpincode.in/pincode/${pincode}`);
             const data = await response.json();
+
+            console.log('India Post API response:', data);
 
             if (data[0].Status === 'Success') {
                 const postOffices = data[0].PostOffice;
@@ -419,18 +624,31 @@
                     po.State.toLowerCase() === state.toLowerCase()
                 );
 
+                isPincodeValidated = true;
                 if (matchingOffice) {
+                    isPincodeValid = true;
                     pincodeValidation.className = 'validation-message success';
-                    pincodeValidation.textContent = `✓ Valid pincode for ${district}`;
+                    pincodeValidation.textContent = `✓ Valid pincode for ${district}, ${state}`;
                 } else {
+                    isPincodeValid = false;
                     pincodeValidation.className = 'validation-message error';
-                    pincodeValidation.textContent = `✗ This pincode belongs to ${postOffices[0].District}, not ${district}`;
+                    const actualDistrict = postOffices[0].District;
+                    const actualState = postOffices[0].State;
+                    
+                    if (actualState !== state) {
+                        pincodeValidation.textContent = `✗ This pincode belongs to ${actualDistrict} district in ${actualState}, not ${state}`;
+                    } else {
+                        pincodeValidation.textContent = `✗ This pincode belongs to ${actualDistrict} district, not ${district}`;
+                    }
                 }
+                checkFormValidity();
             } else {
+                console.log('India Post API failed, falling back to AI validation');
                 // Fallback to AI validation
                 await validatePincodeWithAI(pincode, state, district);
             }
         } catch (error) {
+            console.error('Pincode validation error:', error);
             // Fallback to AI validation
             await validatePincodeWithAI(pincode, state, district);
         }
@@ -438,65 +656,116 @@
 
     // AI-based pincode validation fallback
     async function validatePincodeWithAI(pincode, state, district) {
-        const prompt = `Is pincode ${pincode} valid for ${district} district in ${state}, India? Answer with ONLY "YES" or "NO" followed by the correct district name if NO. Format: "YES" or "NO: CorrectDistrictName"`;
+        const prompt = `Check if pincode ${pincode} is valid for ${district} district in ${state}, India. 
+If YES, respond: "VALID"
+If NO, respond: "INVALID|ActualDistrict|ActualState|Reason"
+Example: "INVALID|Patna|Bihar|This pincode belongs to Patna district, not Nalanda"`;
 
         try {
+            const apiKey = await getGroqKey();
+            
+            if (!apiKey) {
+                throw new Error('No API key available');
+            }
+
+            console.log('Calling Groq API for pincode validation');
+            
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
-                    'Authorization': `Bearer ${GROQ_API_KEY}`,
+                    'Authorization': `Bearer ${apiKey}`,
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
                     model: 'llama-3.3-70b-versatile',
                     messages: [{ role: 'user', content: prompt }],
                     temperature: 0.1,
-                    max_tokens: 50
+                    max_tokens: 100
                 })
             });
 
-            const data = await response.json();
-            const answer = data.choices[0].message.content.trim();
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error('Groq API Error for pincode:', response.status, errorText);
+                throw new Error(`API Error: ${response.status}`);
+            }
 
-            if (answer.startsWith('YES')) {
+            const data = await response.json();
+            
+            if (!data.choices || !data.choices[0] || !data.choices[0].message) {
+                console.error('Invalid API response structure:', data);
+                throw new Error('Invalid API response');
+            }
+            
+            const answer = data.choices[0].message.content.trim();
+            console.log('Pincode validation response:', answer);
+
+            isPincodeValidated = true;
+            if (answer.includes('VALID')) {
+                isPincodeValid = true;
                 pincodeValidation.className = 'validation-message success';
                 pincodeValidation.textContent = `✓ Valid pincode for ${district}`;
             } else {
-                const correctDistrict = answer.split(':')[1]?.trim() || 'another district';
+                isPincodeValid = false;
                 pincodeValidation.className = 'validation-message error';
-                pincodeValidation.textContent = `✗ This pincode may belong to ${correctDistrict}`;
+                
+                // Try to extract detailed reason
+                const parts = answer.split('|');
+                if (parts.length >= 4) {
+                    const [, actualDistrict, actualState, reason] = parts;
+                    pincodeValidation.textContent = `✗ ${reason.trim()}`;
+                } else if (parts.length >= 2) {
+                    pincodeValidation.textContent = `✗ This pincode belongs to ${parts[1].trim()}, not ${district}`;
+                } else {
+                    // Fallback: extract any useful info from response
+                    pincodeValidation.textContent = `✗ ${answer.replace('INVALID', '').replace(/\|/g, ' - ').trim() || `Pincode doesn't match ${district} district`}`;
+                }
             }
+            checkFormValidity();
         } catch (error) {
-            pincodeValidation.className = 'validation-message';
-            pincodeValidation.textContent = 'Could not validate pincode';
+            console.error('Pincode validation error:', error);
+            isPincodeValidated = false;
+            isPincodeValid = false;
+            pincodeValidation.className = 'validation-message error';
+            pincodeValidation.textContent = '✗ Could not validate pincode. Please check your API key configuration.';
+            checkFormValidity();
         }
     }
 
     function saveAddress() {
-        const state = document.getElementById("state").value.trim();
-        const district = document.getElementById("district").value.trim();
-        const tehsil = document.getElementById("tehsil").value.trim();
-        const pincode = document.getElementById("pincode").value.trim();
+        const state = stateSelect.value.trim();
+        const district = districtInput.value.trim();
+        const tehsil = tehsilInput.value.trim();
+        const pincode = pincodeInput.value.trim();
 
         if (!state || !district || !tehsil || !/^[0-9]{6}$/.test(pincode)) {
             alert("Please enter a valid state, district, tehsil, and 6-digit pincode.");
             return;
         }
 
-        // Check if pincode validation shows error
-        if (pincodeValidation.classList.contains('error')) {
+        if (!isPincodeValidated) {
+            alert("Please wait for pincode validation to complete.");
+            return;
+        }
+
+        // If pincode validation shows error, ask for confirmation
+        if (!isPincodeValid) {
             const confirmSave = confirm('The pincode may not match the selected district. Do you want to continue anyway?');
             if (!confirmSave) return;
         }
 
-        // ✅ Send 'state' (current address state) - this will be used everywhere in the project
+        // Disable button to prevent double submission
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving...';
+
+        // ✅ Send 'state' (current address state)
         fetch("/api/user/address", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
                 name,
                 mobile,
-                state,  // ✅ Current address state
+                state,
                 district,
                 tehsil,
                 pincode
@@ -513,8 +782,13 @@
         })
         .catch(() => {
             alert("Failed to save address. Please try again.");
+            saveBtn.disabled = false;
+            saveBtn.textContent = 'Save & Continue';
         });
     }
+
+    // Initial form validity check
+    checkFormValidity();
 </script>
 
 </body>

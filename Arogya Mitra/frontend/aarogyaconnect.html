@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src="js/lang.js"></script>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Aarogya Connect - Healthcare Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e3f2fd 0%, #e8eaf6 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        /* Header */
+        .header {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .header h1 {
+            color: #0b5ed7;
+            font-size: 32px;
+            margin-bottom: 4px;
+        }
+
+        .header-subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .user-info {
+            background: #e3f2fd;
+            padding: 16px 20px;
+            border-radius: 8px;
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .user-info-text {
+            line-height: 1.5;
+        }
+
+        .user-info-name {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .user-info-id {
+            font-size: 13px;
+            color: #666;
+        }
+
+        /* Info Cards */
+        .info-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .info-card-icon {
+            width: 40px;
+            height: 40px;
+            background: #e3f2fd;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #0b5ed7;
+            font-size: 20px;
+        }
+
+        .info-card-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+
+        .info-card-value {
+            font-weight: bold;
+            color: #333;
+            font-size: 16px;
+        }
+
+        /* Search & Filter */
+        .search-filter {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 24px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 12px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+        }
+
+        .search-input, .filter-select {
+            width: 100%;
+            padding: 12px 12px 12px 40px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .search-input:focus, .filter-select:focus {
+            border-color: #0b5ed7;
+        }
+
+        /* Loading & Error */
+        .loading, .error {
+            min-height: 60vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #0b5ed7;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-box {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            max-width: 500px;
+        }
+
+        .error-icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+
+        .error-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+        }
+
+        .error-message {
+            color: #666;
+            margin-bottom: 24px;
+        }
+
+        .btn-primary {
+            background: #0b5ed7;
+            color: white;
+            padding: 12px 32px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #094bb5;
+        }
+
+        /* Hospital Cards */
+        .hospital-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            margin-bottom: 24px;
+            overflow: hidden;
+        }
+
+        .hospital-header {
+            background: linear-gradient(135deg, #0b5ed7 0%, #5c6bc0 100%);
+            color: white;
+            padding: 24px;
+        }
+
+        .hospital-name {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 12px;
+        }
+
+        .hospital-info {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            font-size: 14px;
+        }
+
+        .hospital-info-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .distance-badge {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 6px 16px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        /* Doctors Section */
+        .doctors-section {
+            padding: 24px;
+        }
+
+        .doctors-title {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .doctors-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .doctor-card {
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+            padding: 20px;
+            transition: box-shadow 0.3s;
+        }
+
+        .doctor-card:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+        }
+
+        .doctor-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 16px;
+        }
+
+        .doctor-name {
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .doctor-specialty {
+            color: #0b5ed7;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .rating-badge {
+            background: #dcfce7;
+            color: #15803d;
+            padding: 4px 10px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .doctor-details {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 12px;
+        }
+
+        .doctor-detail-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+
+        .detail-icon {
+            color: #999;
+            width: 16px;
+        }
+
+        .fee {
+            color: #333;
+            font-weight: bold;
+        }
+
+        .languages {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+            margin-top: 12px;
+        }
+
+        .language-tag {
+            background: #e3f2fd;
+            color: #0b5ed7;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .book-btn {
+            width: 100%;
+            background: #0b5ed7;
+            color: white;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: background 0.3s;
+        }
+
+        .book-btn:hover {
+            background: #094bb5;
+        }
+
+        .no-results {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 60px;
+            text-align: center;
+            color: #666;
+            font-size: 18px;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .info-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .doctors-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <!-- Loading State -->
+        <div class="loading" id="loading">
+            <div>
+                <div class="spinner"></div>
+                <p style="color: #666; font-size: 18px;">Loading healthcare services...</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div class="error" id="error" style="display: none;">
+            <div class="error-box">
+                <div class="error-icon">⚠️</div>
+                <h2 class="error-title">Access Denied</h2>
+                <p class="error-message" id="error-message"></p>
+                <a href="/" class="btn-primary">Go to Login</a>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div id="content" style="display: none;">
+            <!-- Header -->
+            <div class="header">
+                <div>
+                    <h1>Aarogya Connect</h1>
+                    <p class="header-subtitle">Find Quality Healthcare Near You</p>
+                </div>
+                <div class="user-info">
+                    <div class="user-info-text">
+                        <div class="user-info-name" id="userName"></div>
+                        <div class="user-info-id" id="userAbha"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Info Cards -->
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="info-card-icon">📅</div>
+                    <div>
+                        <div class="info-card-label">Age</div>
+                        <div class="info-card-value" id="userAge"></div>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">👤</div>
+                    <div>
+                        <div class="info-card-label">Gender</div>
+                        <div class="info-card-value" id="userGender"></div>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">📍</div>
+                    <div>
+                        <div class="info-card-label">Location</div>
+                        <div class="info-card-value" id="userPincode"></div>
+                    </div>
+                </div>
+                <div class="info-card">
+                    <div class="info-card-icon">🏥</div>
+                    <div>
+                        <div class="info-card-label">State</div>
+                        <div class="info-card-value" id="userState"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Search & Filter -->
+            <div class="search-filter">
+                <div class="input-wrapper">
+                    <span class="input-icon">🔍</span>
+                    <input type="text" class="search-input" id="searchInput" placeholder="Search hospitals...">
+                </div>
+                <div class="input-wrapper">
+                    <span class="input-icon">🔽</span>
+                    <select class="filter-select" id="specialtyFilter">
+                        <option value="all">All Specialties</option>
+                        <option value="General Physician">General Physician</option>
+                        <option value="Cardiologist">Cardiologist</option>
+                        <option value="Orthopedic">Orthopedic</option>
+                        <option value="Gynecologist">Gynecologist</option>
+                        <option value="Pediatrician">Pediatrician</option>
+                        <option value="Dermatologist">Dermatologist</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- Hospitals List -->
+            <div id="hospitalsList"></div>
+
+            <!-- No Results -->
+            <div class="no-results" id="noResults" style="display: none;">
+                No hospitals found matching your criteria.
+            </div>
+        </div>
+    </div>
+
+    <script src=".\js\aarogyaconnect.js"></script>
+</body>
+</html>

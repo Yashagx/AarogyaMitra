@@ -1,0 +1,6 @@
+npm install express axios cors dotenv body-parser    
+npm install sqlite3      
+ npm install express-session                                          
+        install dotenv
+check-model.js
+node server.js

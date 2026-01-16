@@ -1,0 +1,11 @@
+.env
+New Text Document.txt
+controllers/
+node_modules/
+routes/
+services/
+utils/
+views/
+*.log
+.DS_Store
+*.sqlite

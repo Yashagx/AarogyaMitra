@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Upload | Aarogya Mitra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            color: white;
+        }
+
+        .top-nav {
+            background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+            color: white;
+            padding: 16px 24px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-container {
+            max-width: 1400px;
+            margin: auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .brand h1 {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .admin-badge {
+            background: #ffc107;
+            color: #000;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .container {
+            padding: 24px;
+            max-width: 1200px;
+            margin: auto;
+        }
+
+        .page-header {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 24px;
+        }
+
+        .page-header h2 {
+            font-size: 28px;
+            margin-bottom: 8px;
+            color: #ffc107;
+        }
+
+        .tabs {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 24px;
+            background: rgba(255, 255, 255, 0.05);
+            padding: 8px;
+            border-radius: 12px;
+        }
+
+        .tab-btn {
+            flex: 1;
+            padding: 12px 24px;
+            background: transparent;
+            border: 2px solid transparent;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .tab-btn:hover {
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        .tab-btn.active {
+            background: #0b5ed7;
+            border-color: #0b5ed7;
+        }
+
+        .upload-section {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 24px;
+            border-radius: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            margin-bottom: 24px;
+        }
+
+        .upload-form {
+            display: grid;
+            gap: 16px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .form-group label {
+            color: #ffc107;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            padding: 12px;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            font-size: 14px;
+            font-family: inherit;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .form-group input::placeholder,
+        .form-group textarea::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #ffc107;
+            background: rgba(255, 255, 255, 0.15);
+        }
+
+        .form-group select option {
+            background: #1a1a2e;
+            color: white;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+        }
+
+        .file-input-label {
+            display: inline-block;
+            padding: 12px 24px;
+            background: #198754;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-weight: 600;
+        }
+
+        .file-input-label:hover {
+            background: #157347;
+        }
+
+        .file-input-wrapper input[type="file"] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .file-name {
+            margin-top: 8px;
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 13px;
+        }
+
+        .btn-primary {
+            background: #ffc107;
+            color: #000;
+            padding: 14px 32px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 700;
+            transition: all 0.3s;
+            width: 100%;
+        }
+
+        .btn-primary:hover {
+            background: #ffca2c;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
+        }
+
+        .btn-primary:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .alert {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+            font-size: 14px;
+            border: 2px solid;
+        }
+
+        .alert-success {
+            background: rgba(25, 135, 84, 0.2);
+            color: #75fb8f;
+            border-color: #198754;
+        }
+
+        .alert-error {
+            background: rgba(220, 53, 69, 0.2);
+            color: #ff6b7a;
+            border-color: #dc3545;
+        }
+
+        .info-box {
+            background: rgba(13, 202, 240, 0.1);
+            border: 2px solid #0dcaf0;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 16px;
+        }
+
+        .info-box h4 {
+            color: #0dcaf0;
+            margin-bottom: 8px;
+        }
+
+        .info-box ul {
+            margin-left: 20px;
+            color: rgba(255, 255, 255, 0.8);
+            font-size: 14px;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 768px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .tabs {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<nav class="top-nav">
+    <div class="nav-container">
+        <div class="brand">
+            <h1>👨‍⚕️ Admin Upload Portal</h1>
+        </div>
+        <div class="admin-badge">⭐ ADMIN ACCESS</div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="page-header">
+        <h2>🏥 Upload Patient Documents</h2>
+        <p style="color: rgba(255, 255, 255, 0.8); font-size: 14px;">
+            Upload health records, prescriptions, and lab reports on behalf of patients
+        </p>
+    </div>
+
+    <div class="info-box">
+        <h4>ℹ️ Important Information</h4>
+        <ul>
+            <li>Enter the patient's name and mobile number exactly as registered in the system</li>
+            <li>All uploaded documents will be marked as "Admin" or "Hospital" uploaded</li>
+            <li>Maximum file size: 10MB</li>
+            <li>Supported formats: PDF, JPG, PNG, DOC, DOCX</li>
+        </ul>
+    </div>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('health-records')">📂 Health Records</button>
+        <button class="tab-btn" onclick="switchTab('prescriptions')">🧾 Prescriptions</button>
+        <button class="tab-btn" onclick="switchTab('lab-reports')">🧪 Lab Reports</button>
+    </div>
+
+    <div id="alertContainer"></div>
+
+    <!-- HEALTH RECORDS UPLOAD -->
+    <div id="health-records-section" class="upload-section">
+        <h3 style="margin-bottom: 16px;">📂 Upload Health Record</h3>
+        <form id="healthRecordForm" class="upload-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Patient Name *</label>
+                    <input type="text" id="hr_patientName" required placeholder="Enter patient's full name">
+                </div>
+                <div class="form-group">
+                    <label>Patient Mobile *</label>
+                    <input type="tel" id="hr_patientMobile" required placeholder="10-digit mobile number" pattern="[0-9]{10}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Document Title *</label>
+                <input type="text" id="hr_title" required placeholder="e.g., Annual Health Checkup 2025">
+            </div>
+
+            <div class="form-group">
+                <label>Description</label>
+                <textarea id="hr_description" placeholder="Add notes about this document..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Select Document *</label>
+                <div class="file-input-wrapper">
+                    <label for="hr_file" class="file-input-label">📎 Choose File</label>
+                    <input type="file" id="hr_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                </div>
+                <div class="file-name" id="hr_fileName">No file selected</div>
+            </div>
+
+            <button type="submit" class="btn-primary" id="hr_uploadBtn">⬆️ Upload Health Record</button>
+        </form>
+    </div>
+
+    <!-- PRESCRIPTIONS UPLOAD -->
+    <div id="prescriptions-section" class="upload-section" style="display: none;">
+        <h3 style="margin-bottom: 16px;">🧾 Upload Prescription</h3>
+        <form id="prescriptionForm" class="upload-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Patient Name *</label>
+                    <input type="text" id="pr_patientName" required placeholder="Enter patient's full name">
+                </div>
+                <div class="form-group">
+                    <label>Patient Mobile *</label>
+                    <input type="tel" id="pr_patientMobile" required placeholder="10-digit mobile number" pattern="[0-9]{10}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Prescription Title *</label>
+                <input type="text" id="pr_title" required placeholder="e.g., Post-Surgery Medications">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Doctor Name</label>
+                    <input type="text" id="pr_doctorName" placeholder="Prescribing doctor's name">
+                </div>
+                <div class="form-group">
+                    <label>Hospital/Clinic Name</label>
+                    <input type="text" id="pr_hospitalName" placeholder="Hospital or clinic">
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Prescription Date</label>
+                    <input type="date" id="pr_prescriptionDate">
+                </div>
+                <div class="form-group">
+                    <label>Medications</label>
+                    <input type="text" id="pr_medications" placeholder="List of medications">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Additional Notes</label>
+                <textarea id="pr_description" placeholder="Special instructions..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Upload Prescription Document *</label>
+                <div class="file-input-wrapper">
+                    <label for="pr_file" class="file-input-label">📎 Choose File</label>
+                    <input type="file" id="pr_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                </div>
+                <div class="file-name" id="pr_fileName">No file selected</div>
+            </div>
+
+            <button type="submit" class="btn-primary" id="pr_uploadBtn">⬆️ Upload Prescription</button>
+        </form>
+    </div>
+
+    <!-- LAB REPORTS UPLOAD -->
+    <div id="lab-reports-section" class="upload-section" style="display: none;">
+        <h3 style="margin-bottom: 16px;">🧪 Upload Lab Report</h3>
+        <form id="labReportForm" class="upload-form">
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Patient Name *</label>
+                    <input type="text" id="lr_patientName" required placeholder="Enter patient's full name">
+                </div>
+                <div class="form-group">
+                    <label>Patient Mobile *</label>
+                    <input type="tel" id="lr_patientMobile" required placeholder="10-digit mobile number" pattern="[0-9]{10}">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Report Title *</label>
+                <input type="text" id="lr_title" required placeholder="e.g., Complete Blood Count (CBC)">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label>Test Type</label>
+                    <select id="lr_testType">
+                        <option value="">Select Test Type</option>
+                        <option value="Blood Test">Blood Test (CBC, LFT, KFT)</option>
+                        <option value="X-Ray">X-Ray</option>
+                        <option value="CT Scan">CT Scan</option>
+                        <option value="MRI">MRI</option>
+                        <option value="Ultrasound">Ultrasound</option>
+                        <option value="ECG">ECG/EKG</option>
+                        <option value="Urine Test">Urine Test</option>
+                        <option value="Thyroid Test">Thyroid Test</option>
+                        <option value="Diabetes Test">Diabetes Test</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Laboratory Name</label>
+                    <input type="text" id="lr_labName" placeholder="Lab or hospital name">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label>Test Date</label>
+                <input type="date" id="lr_testDate">
+            </div>
+
+            <div class="form-group">
+                <label>Additional Notes</label>
+                <textarea id="lr_description" placeholder="Test observations or comments..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label>Upload Lab Report Document *</label>
+                <div class="file-input-wrapper">
+                    <label for="lr_file" class="file-input-label">📎 Choose File</label>
+                    <input type="file" id="lr_file" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx" required>
+                </div>
+                <div class="file-name" id="lr_fileName">No file selected</div>
+            </div>
+
+            <button type="submit" class="btn-primary" id="lr_uploadBtn">⬆️ Upload Lab Report</button>
+        </form>
+    </div>
+</div>
+
+<script>
+    // Tab switching
+    function switchTab(tab) {
+        document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+        document.querySelectorAll('.upload-section').forEach(section => section.style.display = 'none');
+        
+        event.target.classList.add('active');
+        document.getElementById(`${tab}-section`).style.display = 'block';
+    }
+
+    // Set today's date as default for all date inputs
+    document.getElementById('pr_prescriptionDate').valueAsDate = new Date();
+    document.getElementById('lr_testDate').valueAsDate = new Date();
+
+    // File input handlers
+    ['hr', 'pr', 'lr'].forEach(prefix => {
+        document.getElementById(`${prefix}_file`).addEventListener('change', function(e) {
+            const fileName = e.target.files[0]?.name || 'No file selected';
+            const fileSize = e.target.files[0]?.size || 0;
+            const sizeMB = (fileSize / (1024 * 1024)).toFixed(2);
+            document.getElementById(`${prefix}_fileName`).textContent = `${fileName} (${sizeMB} MB)`;
+        });
+    });
+
+    // Show alert
+    function showAlert(message, type = 'success') {
+        const alertContainer = document.getElementById('alertContainer');
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.textContent = message;
+        alertContainer.appendChild(alert);
+        
+        setTimeout(() => alert.remove(), 5000);
+    }
+
+    // Health Record Upload
+    document.getElementById('healthRecordForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('hr_uploadBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Uploading...';
+
+        const formData = new FormData();
+        formData.append('file', document.getElementById('hr_file').files[0]);
+        formData.append('patientName', document.getElementById('hr_patientName').value);
+        formData.append('patientMobile', document.getElementById('hr_patientMobile').value);
+        formData.append('title', document.getElementById('hr_title').value);
+        formData.append('description', document.getElementById('hr_description').value);
+        formData.append('category', 'health-records');
+        formData.append('uploadedBy', 'admin');
+
+        try {
+            const response = await fetch('/api/health-records/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert('✅ Health record uploaded successfully!', 'success');
+                document.getElementById('healthRecordForm').reset();
+                document.getElementById('hr_fileName').textContent = 'No file selected';
+            } else {
+                showAlert(`❌ ${data.error || 'Upload failed'}`, 'error');
+            }
+        } catch (error) {
+            showAlert('❌ Network error. Please try again.', 'error');
+            console.error('Upload error:', error);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '⬆️ Upload Health Record';
+        }
+    });
+
+    // Prescription Upload
+    document.getElementById('prescriptionForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('pr_uploadBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Uploading...';
+
+        const formData = new FormData();
+        formData.append('file', document.getElementById('pr_file').files[0]);
+        formData.append('patientName', document.getElementById('pr_patientName').value);
+        formData.append('patientMobile', document.getElementById('pr_patientMobile').value);
+        formData.append('title', document.getElementById('pr_title').value);
+        formData.append('description', document.getElementById('pr_description').value);
+        formData.append('doctorName', document.getElementById('pr_doctorName').value);
+        formData.append('hospitalName', document.getElementById('pr_hospitalName').value);
+        formData.append('prescriptionDate', document.getElementById('pr_prescriptionDate').value);
+        formData.append('medications', document.getElementById('pr_medications').value);
+        formData.append('category', 'prescriptions');
+        formData.append('uploadedBy', 'admin');
+
+        try {
+            const response = await fetch('/api/prescriptions/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert('✅ Prescription uploaded successfully!', 'success');
+                document.getElementById('prescriptionForm').reset();
+                document.getElementById('pr_fileName').textContent = 'No file selected';
+                document.getElementById('pr_prescriptionDate').valueAsDate = new Date();
+            } else {
+                showAlert(`❌ ${data.error || 'Upload failed'}`, 'error');
+            }
+        } catch (error) {
+            showAlert('❌ Network error. Please try again.', 'error');
+            console.error('Upload error:', error);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '⬆️ Upload Prescription';
+        }
+    });
+
+    // Lab Report Upload
+    document.getElementById('labReportForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const btn = document.getElementById('lr_uploadBtn');
+        btn.disabled = true;
+        btn.textContent = '⏳ Uploading...';
+
+        const formData = new FormData();
+        formData.append('file', document.getElementById('lr_file').files[0]);
+        formData.append('patientName', document.getElementById('lr_patientName').value);
+        formData.append('patientMobile', document.getElementById('lr_patientMobile').value);
+        formData.append('title', document.getElementById('lr_title').value);
+        formData.append('description', document.getElementById('lr_description').value);
+        formData.append('testType', document.getElementById('lr_testType').value);
+        formData.append('labName', document.getElementById('lr_labName').value);
+        formData.append('testDate', document.getElementById('lr_testDate').value);
+        formData.append('category', 'lab-reports');
+        formData.append('uploadedBy', 'admin');
+
+        try {
+            const response = await fetch('/api/lab-reports/upload', {
+                method: 'POST',
+                body: formData
+            });
+
+            const data = await response.json();
+
+            if (response.ok) {
+                showAlert('✅ Lab report uploaded successfully!', 'success');
+                document.getElementById('labReportForm').reset();
+                document.getElementById('lr_fileName').textContent = 'No file selected';
+                document.getElementById('lr_testDate').valueAsDate = new Date();
+            } else {
+                showAlert(`❌ ${data.error || 'Upload failed'}`, 'error');
+            }
+        } catch (error) {
+            showAlert('❌ Network error. Please try again.', 'error');
+            console.error('Upload error:', error);
+        } finally {
+            btn.disabled = false;
+            btn.textContent = '⬆️ Upload Lab Report';
+        }
+    });
+</script>
+
+</body>
+</html>

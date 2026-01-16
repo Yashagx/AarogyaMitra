@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src="js/lang.js"></script>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Aarogya Mitra | Sign Up</title>
+
+    <link rel="stylesheet" href="css/style.css" />
+
+    <style>
+        .phone-wrapper {
+            position: relative;
+        }
+
+        .eye-toggle {
+            position: absolute;
+            right: 10px;
+            top: 38px;
+            cursor: pointer;
+            font-size: 14px;
+            user-select: none;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+
+<!-- 🌐 Language Toggle -->
+<div style="text-align: right; padding: 10px;">
+    <select onchange="setLanguage(this.value)" id="langSelect">
+        <option value="en">English</option>
+        <option value="hi">हिंदी</option>
+        <option value="ta">தமிழ்</option>
+        <option value="te">తెలుగు</option>
+        <option value="kn">ಕನ್ನಡ</option>
+        <option value="ml">മലയാളം</option>
+        <option value="mr">मराठी</option>
+        <option value="bn">বাংলা</option>
+    </select>
+</div>
+
+<div class="container">
+    <h1 data-i18n="app_name">Aarogya Mitra</h1>
+
+    <p class="subtitle" data-i18n="subtitle">
+        Secure rural healthcare access using your ABHA ID
+    </p>
+
+    <!-- Signup Form -->
+    <form id="signupForm" autocomplete="off" spellcheck="false">
+
+        <!-- Full Name -->
+        <label for="name" data-i18n="full_name">Full Name</label>
+        <input
+            type="text"
+            id="name"
+            name="name"
+            placeholder="Enter your full name"
+            autocomplete="off"
+            required
+        />
+
+        <!-- Mobile Number -->
+        <label for="mobile" data-i18n="mobile">Mobile Number</label>
+
+        <div class="phone-wrapper">
+            <input
+                type="password"
+                id="mobile"
+                name="mobile"
+                placeholder="10-digit mobile number"
+                pattern="[0-9]{10}"
+                inputmode="numeric"
+                autocomplete="off"
+                required
+            />
+            <span class="eye-toggle" id="toggleEye">👁</span>
+        </div>
+
+        <!-- Info box -->
+        <div class="info-box">
+            <strong data-i18n="why_abha">Why ABHA verification?</strong>
+            <ul>
+                <li data-i18n="abha_points_1">Your medical records stay secure</li>
+                <li data-i18n="abha_points_2">No duplicate tests or reports</li>
+                <li data-i18n="abha_points_3">Doctors access verified data only</li>
+            </ul>
+        </div>
+
+        <button type="submit" class="abha-btn" data-i18n="verify_abha">
+            Verify with ABHA
+        </button>
+    </form>
+
+    <p class="note">
+        You will be redirected to the official ABHA website for OTP verification.
+    </p>
+</div>
+
+<!-- 🔒 HARD RESET + SECURITY -->
+<script>
+    // Clear all previous sensitive session data
+    sessionStorage.clear();
+
+    // Disable browser back-forward cache
+    window.addEventListener("pageshow", function (event) {
+        if (event.persisted) {
+            window.location.reload();
+        }
+    });
+
+    // Ensure fields are empty
+    document.addEventListener("DOMContentLoaded", () => {
+        document.getElementById("name").value = "";
+        document.getElementById("mobile").value = "";
+    });
+</script>
+
+<!-- 🌐 Language Engine -->
+<script src="js/lang.js"></script>
+
+<!-- 📱 Signup Logic -->
+<script src="js/signup.js"></script>
+
+</body>
+</html>

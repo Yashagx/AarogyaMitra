@@ -1,0 +1,1019 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Appointment - Aarogya Connect</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #e3f2fd 0%, #e8eaf6 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .back-link {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #0b5ed7;
+            text-decoration: none;
+            font-size: 14px;
+            margin-bottom: 20px;
+            transition: color 0.3s;
+        }
+
+        .back-link:hover {
+            color: #094bb5;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 350px;
+            gap: 24px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        .sidebar-card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            padding: 24px;
+            margin-bottom: 20px;
+            max-height: fit-content;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 32px;
+        }
+
+        .header h1 {
+            color: #0b5ed7;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .section-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e3f2fd;
+        }
+
+        .doctor-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 32px;
+        }
+
+        .doctor-info h2 {
+            color: #333;
+            font-size: 20px;
+            margin-bottom: 12px;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .info-value {
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .ai-badge {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            transition: transform 0.3s;
+            margin-top: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border: none;
+            width: 100%;
+            justify-content: center;
+        }
+
+        .ai-badge:hover {
+            transform: translateY(-2px);
+        }
+
+        .ai-response {
+            background: #f0f4ff;
+            border-left: 4px solid #667eea;
+            padding: 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            display: none;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .ai-response.show {
+            display: block;
+        }
+
+        .ai-loading {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #667eea;
+        }
+
+        .spinner-small {
+            border: 2px solid #f3f3f3;
+            border-top: 2px solid #667eea;
+            border-radius: 50%;
+            width: 16px;
+            height: 16px;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .symptoms-section {
+            margin-bottom: 32px;
+        }
+
+        .symptom-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            background: #e3f2fd;
+            color: #0b5ed7;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin: 4px;
+            font-size: 14px;
+        }
+
+        .symptom-tag .remove-btn {
+            cursor: pointer;
+            font-weight: bold;
+            color: #666;
+            transition: color 0.3s;
+        }
+
+        .symptom-tag .remove-btn:hover {
+            color: #c33;
+        }
+
+        .symptom-input-wrapper {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .symptom-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+        }
+
+        .btn-add {
+            background: #0b5ed7;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+
+        .btn-add:hover {
+            background: #094bb5;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 20px;
+            color: #999;
+            font-size: 14px;
+        }
+
+        .appointment-item {
+            background: #f8f9fa;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .appointment-date {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .appointment-details {
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 24px;
+        }
+
+        .form-label {
+            display: block;
+            color: #333;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-input,
+        .form-textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .form-input:focus,
+        .form-textarea:focus {
+            border-color: #0b5ed7;
+        }
+
+        .form-textarea {
+            resize: vertical;
+            min-height: 100px;
+            font-family: Arial, Helvetica, sans-serif;
+        }
+
+        .time-slots {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .time-slot {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            font-size: 14px;
+            background: white;
+        }
+
+        .time-slot:hover {
+            border-color: #0b5ed7;
+            background: #e3f2fd;
+        }
+
+        .time-slot.selected {
+            border-color: #0b5ed7;
+            background: #0b5ed7;
+            color: white;
+            font-weight: 600;
+        }
+
+        .btn-primary {
+            width: 100%;
+            background: #0b5ed7;
+            color: white;
+            padding: 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: #094bb5;
+        }
+
+        .btn-primary:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .success-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .success-modal.show {
+            display: flex;
+        }
+
+        .success-content {
+            background: white;
+            border-radius: 12px;
+            padding: 40px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .success-icon {
+            font-size: 60px;
+            margin-bottom: 16px;
+        }
+
+        .success-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 12px;
+        }
+
+        .success-message {
+            color: #666;
+            margin-bottom: 24px;
+            line-height: 1.6;
+        }
+
+        .booking-id {
+            background: #f8f9fa;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #0b5ed7;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            margin: 0 8px;
+            transition: background 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        .btn-download {
+            background: #28a745;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            margin: 8px;
+            transition: background 0.3s;
+        }
+
+        .btn-download:hover {
+            background: #218838;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .warning-box {
+            background: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 16px;
+            border-radius: 8px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .warning-box.show {
+            display: block;
+        }
+
+        .warning-title {
+            font-weight: 600;
+            color: #856404;
+            margin-bottom: 8px;
+        }
+
+        .warning-text {
+            color: #856404;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 968px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 20px;
+            }
+
+            .time-slots {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="aarogyaconnect.html" class="back-link">
+            ← Back to Hospitals
+        </a>
+
+        <div class="main-grid">
+            <!-- Main Content -->
+            <div>
+                <div class="card">
+                    <div class="header">
+                        <h1>Book Your Appointment</h1>
+                        <p>Fill in the details below to confirm your appointment</p>
+                    </div>
+
+                    <div class="error-message" id="errorMessage"></div>
+                    <div class="warning-box" id="warningBox">
+                        <div class="warning-title">⚠️ Specialty Mismatch Detected</div>
+                        <div class="warning-text" id="warningText"></div>
+                    </div>
+
+                    <div class="doctor-info" id="doctorInfo">
+                        <h2>Appointment Details</h2>
+                        <div class="info-row">
+                            <span class="info-label">Doctor</span>
+                            <span class="info-value" id="doctorName">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Specialization</span>
+                            <span class="info-value" id="specialty">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Hospital</span>
+                            <span class="info-value" id="hospitalName">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Consultation Fee</span>
+                            <span class="info-value" id="consultationFee">-</span>
+                        </div>
+                        <button class="ai-badge" id="aiAssistBtn">
+                            🤖 Get AI Recommendation
+                        </button>
+                        <div class="ai-response" id="aiResponse"></div>
+                    </div>
+
+                    <!-- Previous Symptoms Section -->
+                    <div class="symptoms-section">
+                        <h3 class="section-title">Your Symptoms</h3>
+                        <div id="symptomsContainer">
+                            <div class="empty-state">Loading previous symptoms...</div>
+                        </div>
+                        <div class="symptom-input-wrapper">
+                            <input type="text" class="symptom-input" id="newSymptomInput" placeholder="Add new symptom...">
+                            <button class="btn-add" id="addSymptomBtn">Add</button>
+                        </div>
+                    </div>
+
+                    <form id="bookingForm">
+                        <div class="form-group">
+                            <label class="form-label">Select Date</label>
+                            <input type="date" class="form-input" id="appointmentDate" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Select Time Slot</label>
+                            <div class="time-slots">
+                                <div class="time-slot" data-time="09:00 AM">9:00 AM</div>
+                                <div class="time-slot" data-time="10:00 AM">10:00 AM</div>
+                                <div class="time-slot" data-time="11:00 AM">11:00 AM</div>
+                                <div class="time-slot" data-time="12:00 PM">12:00 PM</div>
+                                <div class="time-slot" data-time="02:00 PM">2:00 PM</div>
+                                <div class="time-slot" data-time="03:00 PM">3:00 PM</div>
+                                <div class="time-slot" data-time="04:00 PM">4:00 PM</div>
+                                <div class="time-slot" data-time="05:00 PM">5:00 PM</div>
+                            </div>
+                            <input type="hidden" id="appointmentTime" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Additional Notes (Optional)</label>
+                            <textarea class="form-textarea" id="notes" placeholder="Any other information for the doctor..." style="min-height: 80px;"></textarea>
+                        </div>
+
+                        <button type="submit" class="btn-primary" id="submitBtn">
+                            Confirm Appointment
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div>
+                <div class="sidebar-card">
+                    <h3 class="section-title">Previous Appointments</h3>
+                    <div id="previousAppointments">
+                        <div class="empty-state">Loading...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Success Modal -->
+    <div class="success-modal" id="successModal">
+        <div class="success-content">
+            <div class="success-icon">✅</div>
+            <h2 class="success-title">Appointment Booked Successfully!</h2>
+            <p class="success-message">Your appointment has been confirmed. Please save your booking ID for reference.</p>
+            <div class="booking-id" id="bookingIdDisplay">-</div>
+            <div>
+                <button class="btn-download" id="downloadPdfBtn">
+                    📄 Download Receipt
+                </button>
+            </div>
+            <div style="margin-top: 16px;">
+                <button class="btn-primary" onclick="window.location.href='aarogyaconnect.html'" style="width: auto; padding: 12px 24px; margin: 0 8px;">
+                    Back to Hospitals
+                </button>
+                <button class="btn-secondary" onclick="window.location.href='dashboard.html'">
+                    Go to Dashboard
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let userSymptoms = [];
+        let appointmentDetails = JSON.parse(sessionStorage.getItem('appointmentDetails') || '{}');
+        let userProfile = null;
+        let bookedAppointmentData = null;
+
+        if (!appointmentDetails.doctorName) {
+            window.location.href = 'aarogyaconnect.html';
+        }
+
+        // Initialize
+        async function initialize() {
+            await loadUserProfile();
+            await loadPreviousSymptoms();
+            await loadPreviousAppointments();
+            displayAppointmentDetails();
+            setupEventListeners();
+        }
+
+        // Display appointment details
+        function displayAppointmentDetails() {
+            document.getElementById('doctorName').textContent = appointmentDetails.doctorName || '-';
+            document.getElementById('specialty').textContent = appointmentDetails.specialty || '-';
+            document.getElementById('hospitalName').textContent = appointmentDetails.hospitalName || '-';
+            document.getElementById('consultationFee').textContent = `₹${appointmentDetails.consultationFee || '-'}`;
+
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('appointmentDate').min = today;
+        }
+
+        // Load user profile
+        async function loadUserProfile() {
+            try {
+                const response = await fetch('/api/abha/profile', { credentials: 'include' });
+                if (response.ok) {
+                    userProfile = await response.json();
+                }
+            } catch (error) {
+                console.error('Error loading profile:', error);
+            }
+        }
+
+        // Load previous symptoms
+        async function loadPreviousSymptoms() {
+            try {
+                const response = await fetch('/api/symptoms/user', { credentials: 'include' });
+                if (response.ok) {
+                    const data = await response.json();
+                    userSymptoms = data.symptoms || [];
+                    renderSymptoms();
+                } else {
+                    document.getElementById('symptomsContainer').innerHTML = 
+                        '<div class="empty-state">No previous symptoms found. Add your symptoms below.</div>';
+                }
+            } catch (error) {
+                console.error('Error loading symptoms:', error);
+                document.getElementById('symptomsContainer').innerHTML = 
+                    '<div class="empty-state">No previous symptoms found. Add your symptoms below.</div>';
+            }
+        }
+
+        // Render symptoms
+        function renderSymptoms() {
+            const container = document.getElementById('symptomsContainer');
+            if (userSymptoms.length === 0) {
+                container.innerHTML = '<div class="empty-state">No symptoms added yet. Add your symptoms below.</div>';
+                return;
+            }
+
+            container.innerHTML = userSymptoms.map((symptom, index) => `
+                <span class="symptom-tag">
+                    ${symptom}
+                    <span class="remove-btn" onclick="removeSymptom(${index})">×</span>
+                </span>
+            `).join('');
+        }
+
+        // Add symptom
+        function addSymptom() {
+            const input = document.getElementById('newSymptomInput');
+            const symptom = input.value.trim();
+            
+            if (symptom && !userSymptoms.includes(symptom)) {
+                userSymptoms.push(symptom);
+                renderSymptoms();
+                input.value = '';
+                checkSymptomMatch();
+            }
+        }
+
+        // Remove symptom
+        function removeSymptom(index) {
+            userSymptoms.splice(index, 1);
+            renderSymptoms();
+            checkSymptomMatch();
+        }
+
+        // Check symptom match with AI
+        async function checkSymptomMatch() {
+            if (userSymptoms.length === 0) return;
+
+            try {
+                const response = await fetch('/api/ai/check-specialty-match', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        symptoms: userSymptoms,
+                        specialty: appointmentDetails.specialty
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (!data.isMatch) {
+                        showWarning(data.message, data.suggestedSpecialty);
+                    } else {
+                        hideWarning();
+                    }
+                }
+            } catch (error) {
+                console.error('Error checking specialty match:', error);
+            }
+        }
+
+        // Show warning
+        function showWarning(message, suggestedSpecialty) {
+            const warningBox = document.getElementById('warningBox');
+            const warningText = document.getElementById('warningText');
+            warningText.innerHTML = `${message}<br><strong>Suggested Specialty:</strong> ${suggestedSpecialty || 'General Physician'}`;
+            warningBox.classList.add('show');
+        }
+
+        // Hide warning
+        function hideWarning() {
+            document.getElementById('warningBox').classList.remove('show');
+        }
+
+        // Load previous appointments
+        async function loadPreviousAppointments() {
+            try {
+                const response = await fetch('/api/appointments/history', { credentials: 'include' });
+                const container = document.getElementById('previousAppointments');
+                
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.appointments && data.appointments.length > 0) {
+                        container.innerHTML = data.appointments.slice(0, 5).map(apt => `
+                            <div class="appointment-item">
+                                <div class="appointment-date">${new Date(apt.appointment_date).toLocaleDateString()}</div>
+                                <div class="appointment-details">
+                                    ${apt.doctor_name} - ${apt.specialization}<br>
+                                    <small>${apt.hospital_name}</small>
+                                </div>
+                            </div>
+                        `).join('');
+                    } else {
+                        container.innerHTML = '<div class="empty-state">No previous appointments</div>';
+                    }
+                } else {
+                    container.innerHTML = '<div class="empty-state">No previous appointments</div>';
+                }
+            } catch (error) {
+                console.error('Error loading appointments:', error);
+                document.getElementById('previousAppointments').innerHTML = 
+                    '<div class="empty-state">Failed to load appointments</div>';
+            }
+        }
+
+        // Get AI recommendation
+        async function getAIRecommendation() {
+            const aiBtn = document.getElementById('aiAssistBtn');
+            const aiResponse = document.getElementById('aiResponse');
+            
+            aiBtn.disabled = true;
+            aiResponse.innerHTML = '<div class="ai-loading"><div class="spinner-small"></div> Analyzing your choice...</div>';
+            aiResponse.classList.add('show');
+
+            try {
+                const response = await fetch('/api/ai/doctor-recommendation', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        doctorName: appointmentDetails.doctorName,
+                        specialty: appointmentDetails.specialty,
+                        hospitalName: appointmentDetails.hospitalName,
+                        symptoms: userSymptoms,
+                        userProfile: userProfile
+                    })
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    aiResponse.innerHTML = `<strong>🤖 AI Analysis:</strong><br>${data.recommendation}`;
+                } else {
+                    aiResponse.innerHTML = 'Failed to get AI recommendation. Please try again.';
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                aiResponse.innerHTML = 'Failed to get AI recommendation. Please try again.';
+            } finally {
+                aiBtn.disabled = false;
+            }
+        }
+
+        // Setup event listeners
+        function setupEventListeners() {
+            // Time slot selection
+            const timeSlots = document.querySelectorAll('.time-slot');
+            const appointmentTimeInput = document.getElementById('appointmentTime');
+
+            timeSlots.forEach(slot => {
+                slot.addEventListener('click', () => {
+                    timeSlots.forEach(s => s.classList.remove('selected'));
+                    slot.classList.add('selected');
+                    appointmentTimeInput.value = slot.dataset.time;
+                });
+            });
+
+            // Add symptom
+            document.getElementById('addSymptomBtn').addEventListener('click', addSymptom);
+            document.getElementById('newSymptomInput').addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    addSymptom();
+                }
+            });
+
+            // AI recommendation
+            document.getElementById('aiAssistBtn').addEventListener('click', getAIRecommendation);
+
+            // Form submission
+            document.getElementById('bookingForm').addEventListener('submit', handleSubmit);
+
+            // Download PDF
+            document.getElementById('downloadPdfBtn').addEventListener('click', downloadPDF);
+        }
+
+        // Handle form submission
+        async function handleSubmit(e) {
+            e.preventDefault();
+
+            const appointmentDate = document.getElementById('appointmentDate').value;
+            const appointmentTime = document.getElementById('appointmentTime').value;
+            const notes = document.getElementById('notes').value;
+
+            if (!appointmentTime) {
+                showError('Please select a time slot');
+                return;
+            }
+
+            if (userSymptoms.length === 0) {
+                showError('Please add at least one symptom');
+                return;
+            }
+
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Booking...';
+
+            try {
+                const response = await fetch('/api/appointments/book', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    credentials: 'include',
+                    body: JSON.stringify({
+                        hospitalName: appointmentDetails.hospitalName,
+                        doctorName: appointmentDetails.doctorName,
+                        appointmentDate,
+                        appointmentTime,
+                        symptoms: userSymptoms.join(', '),
+                        notes,
+                        preTests: ''
+                    })
+                });
+
+                const data = await response.json();
+
+                if (response.ok && data.success) {
+                    // Fetch full appointment details for PDF
+                    const aptResponse = await fetch(`/api/appointments/${data.bookingId}`, { credentials: 'include' });
+                    if (aptResponse.ok) {
+                        bookedAppointmentData = await aptResponse.json();
+                    }
+
+                    document.getElementById('bookingIdDisplay').textContent = `Booking ID: ${data.bookingId}`;
+                    document.getElementById('successModal').classList.add('show');
+                    sessionStorage.removeItem('appointmentDetails');
+                } else {
+                    showError(data.error || 'Failed to book appointment. Please try again.');
+                    submitBtn.disabled = false;
+                    submitBtn.textContent = 'Confirm Appointment';
+                }
+            } catch (error) {
+                console.error('Booking error:', error);
+                showError('An error occurred. Please try again.');
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Confirm Appointment';
+            }
+        }
+
+        // Download PDF
+        function downloadPDF() {
+            if (!bookedAppointmentData) {
+                alert('Appointment data not available');
+                return;
+            }
+
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+
+            // Header
+            doc.setFillColor(11, 94, 215);
+            doc.rect(0, 0, 210, 40, 'F');
+            doc.setTextColor(255, 255, 255);
+            doc.setFontSize(24);
+            doc.text('Aarogya Connect', 105, 20, { align: 'center' });
+            doc.setFontSize(12);
+            doc.text('Appointment Receipt', 105, 30, { align: 'center' });
+
+            // Reset text color
+            doc.setTextColor(0, 0, 0);
+            
+            // Booking ID
+            doc.setFontSize(16);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Booking ID: ${bookedAppointmentData.booking_id}`, 20, 55);
+
+            // Patient Details
+            doc.setFontSize(14);
+            doc.text('Patient Details:', 20, 70);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Name: ${bookedAppointmentData.patient_name}`, 20, 80);
+            doc.text(`ABHA ID: ${bookedAppointmentData.abha_id}`, 20, 88);
+            doc.text(`Age: ${bookedAppointmentData.age} years | Gender: ${bookedAppointmentData.gender}`, 20, 96);
+            doc.text(`Mobile: ${bookedAppointmentData.mobile}`, 20, 104);
+
+            // Appointment Details
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Appointment Details:', 20, 120);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Date: ${new Date(bookedAppointmentData.appointment_date).toLocaleDateString()}`, 20, 130);
+            doc.text(`Time: ${bookedAppointmentData.appointment_time}`, 20, 138);
+            doc.text(`Status: ${bookedAppointmentData.status.toUpperCase()}`, 20, 146);
+
+            // Doctor Details
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Doctor Details:', 20, 162);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Doctor: ${bookedAppointmentData.doctor_name}`, 20, 172);
+            doc.text(`Specialization: ${bookedAppointmentData.specialization}`, 20, 180);
+            doc.text(`Experience: ${bookedAppointmentData.experience_years} years`, 20, 188);
+
+            // Hospital Details
+            doc.setFontSize(14);
+            doc.setFont(undefined, 'bold');
+            doc.text('Hospital Details:', 20, 204);
+            doc.setFontSize(11);
+            doc.setFont(undefined, 'normal');
+            doc.text(`Hospital: ${bookedAppointmentData.hospital_name}`, 20, 214);
+            const address = doc.splitTextToSize(bookedAppointmentData.hospital_address, 170);
+            doc.text(address, 20, 222);
+            doc.text(`Phone: ${bookedAppointmentData.hospital_phone}`, 20, 222 + (address.length * 7));
+
+            // Consultation Fee
+            const feeY = 238 + (address.length * 7);
+            doc.setFillColor(243, 244, 246);
+            doc.rect(20, feeY - 5, 170, 15, 'F');
+            doc.setFontSize(12);
+            doc.setFont(undefined, 'bold');
+            doc.text(`Consultation Fee: ₹${bookedAppointmentData.consultation_fee}`, 25, feeY + 5);
+
+            // Footer
+            doc.setFontSize(9);
+            doc.setFont(undefined, 'normal');
+            doc.setTextColor(100, 100, 100);
+            doc.text('Please arrive 15 minutes before your appointment time.', 105, 275, { align: 'center' });
+            doc.text('For any queries, contact the hospital directly.', 105, 282, { align: 'center' });
+
+            // Save PDF
+            doc.save(`Appointment_${bookedAppointmentData.booking_id}.pdf`);
+        }
+
+        function showError(message) {
+            const errorMessage = document.getElementById('errorMessage');
+            errorMessage.textContent = message;
+            errorMessage.classList.add('show');
+            setTimeout(() => {
+                errorMessage.classList.remove('show');
+            }, 5000);
+        }
+
+        // Make functions global
+        window.removeSymptom = removeSymptom;
+
+        // Initialize on load
+        initialize();
+    </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</body>
+</html>

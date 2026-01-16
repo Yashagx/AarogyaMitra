@@ -1,0 +1,751 @@
+<!DOCTYPE html>
+<html lang="en">
+<script src="js/lang.js"></script>
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Voice Symptom Checker | Aarogya Mitra</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e3f2fd 0%, #f1f8f4 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 700px;
+            margin: auto;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #0b5ed7 0%, #0056b3 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 20px;
+            margin-bottom: 30px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            margin-bottom: 15px;
+        }
+
+        .header p {
+            font-size: 16px;
+            opacity: 0.95;
+            line-height: 1.6;
+        }
+
+        .back-btn {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+        }
+
+        .back-btn:hover {
+            background: rgba(255,255,255,0.3);
+        }
+
+        .main-card {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+        }
+
+        .instructions {
+            background: #e7f5ec;
+            border-left: 5px solid #198754;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+        }
+
+        .instructions h3 {
+            color: #198754;
+            margin-bottom: 15px;
+            font-size: 20px;
+        }
+
+        .instructions ol {
+            margin-left: 20px;
+            line-height: 2;
+            font-size: 16px;
+            color: #333;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 30px;
+        }
+
+        .search-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 12px;
+            display: block;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-input {
+            flex: 1;
+            padding: 18px 20px;
+            border: 3px solid #e0e0e0;
+            border-radius: 15px;
+            font-size: 18px;
+            font-family: inherit;
+            transition: all 0.3s;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #0b5ed7;
+            box-shadow: 0 0 0 4px rgba(11, 94, 215, 0.1);
+        }
+
+        .voice-btn {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #0b5ed7, #0056b3);
+            border: none;
+            color: white;
+            font-size: 32px;
+            cursor: pointer;
+            box-shadow: 0 4px 12px rgba(11, 94, 215, 0.3);
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .voice-btn:hover {
+            transform: scale(1.1);
+        }
+
+        .voice-btn.listening {
+            background: linear-gradient(135deg, #dc3545, #c82333);
+            animation: voicePulse 1.5s infinite;
+        }
+
+        @keyframes voicePulse {
+            0%, 100% { 
+                box-shadow: 0 0 0 0 rgba(220, 53, 69, 0.7);
+            }
+            50% { 
+                box-shadow: 0 0 0 20px rgba(220, 53, 69, 0);
+            }
+        }
+
+        .voice-status {
+            text-align: center;
+            color: #dc3545;
+            font-weight: 600;
+            font-size: 14px;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        .slider-group {
+            margin-bottom: 35px;
+        }
+
+        .slider-label {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .slider-value {
+            font-size: 20px;
+            color: #0b5ed7;
+            font-weight: 700;
+        }
+
+        .slider {
+            width: 100%;
+            height: 12px;
+            border-radius: 10px;
+            background: #e0e0e0;
+            outline: none;
+           
+        }
+
+        .slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #0b5ed7;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .slider::-moz-range-thumb {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: #0b5ed7;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .slider-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .submit-btn {
+            background: linear-gradient(135deg, #198754, #157347);
+            color: white;
+            border: none;
+            padding: 20px;
+            border-radius: 15px;
+            font-size: 20px;
+            font-weight: 700;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(25, 135, 84, 0.3);
+            margin-bottom: 20px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(25, 135, 84, 0.4);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 5px solid #f3f3f3;
+            border-top: 5px solid #0b5ed7;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .response-card {
+            display: none;
+            background: white;
+            padding: 35px;
+            border-radius: 20px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+            margin-top: 30px;
+        }
+
+        .response-card.show {
+            display: block;
+        }
+
+        .urgency-badge {
+            display: inline-block;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 25px;
+        }
+
+        .urgency-badge.urgent {
+            background: #fff5f5;
+            color: #dc3545;
+            border: 3px solid #dc3545;
+        }
+
+        .urgency-badge.high {
+            background: #fff8e1;
+            color: #ff9800;
+            border: 3px solid #ff9800;
+        }
+
+        .urgency-badge.normal {
+            background: #e7f5ec;
+            color: #198754;
+            border: 3px solid #198754;
+        }
+
+        .response-content {
+            font-size: 17px;
+            line-height: 2;
+            color: #333;
+            white-space: pre-wrap;
+            margin-bottom: 25px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .action-btn {
+            flex: 1;
+            min-width: 150px;
+            padding: 15px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .action-btn.primary {
+            background: #0b5ed7;
+            color: white;
+        }
+
+        .action-btn.primary:hover {
+            background: #0056b3;
+            transform: translateY(-2px);
+        }
+
+        .action-btn.secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .action-btn.secondary:hover {
+            background: #5a6268;
+            transform: translateY(-2px);
+        }
+
+        .disclaimer {
+            background: #fff8e1;
+            border-left: 5px solid #ff9800;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            font-size: 15px;
+            color: #856404;
+            line-height: 1.8;
+        }
+
+        @media (max-width: 768px) {
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .main-card {
+                padding: 25px;
+            }
+
+            .search-box {
+                flex-direction: column;
+            }
+
+            .voice-btn {
+                width: 60px;
+                height: 60px;
+                font-size: 28px;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .action-btn {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<button class="back-btn" onclick="goBack()">← Back to Dashboard</button>
+
+<div class="container">
+    <div class="header">
+        <h1>🩺 Symptom Checker</h1>
+        <p>Speak or type your symptoms in your language</p>
+    </div>
+
+    <div class="main-card" id="mainCard">
+        <div class="instructions">
+            <h3>📋 How to Use:</h3>
+            <ol>
+                <li>🎤 <strong>Click microphone</strong> and speak your symptoms</li>
+                <li>⏱️ <strong>Drag slider</strong> to show how many days</li>
+                <li>😣 <strong>Drag slider</strong> to show pain level</li>
+                <li>✅ <strong>Click Check</strong> button</li>
+            </ol>
+        </div>
+
+        <!-- Search Box with Voice -->
+        <div class="search-container">
+            <label class="search-label">🗣️ Tell Your Symptoms:</label>
+            <div class="search-box">
+                <input 
+                    type="text" 
+                    id="symptoms" 
+                    class="search-input" 
+                    placeholder="Example: Fever, headache, body pain..."
+                />
+                <button class="voice-btn" id="voiceBtn" onclick="toggleVoiceRecording()">🎤</button>
+            </div>
+            <div class="voice-status" id="voiceStatusText"></div>
+        </div>
+
+        <!-- Duration Slider -->
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>⏱️ Days Since:</span>
+                <span class="slider-value" id="durationValue">3 days</span>
+            </div>
+            <input 
+                type="range" 
+                min="1" 
+                max="30" 
+                value="3" 
+                class="slider" 
+                id="duration"
+                oninput="updateDuration(this.value)"
+            />
+            <div class="slider-markers">
+                <span>1 day</span>
+                <span>1 week</span>
+                <span>2 weeks</span>
+                <span>1 month</span>
+            </div>
+        </div>
+
+        <!-- Severity Slider -->
+        <div class="slider-group">
+            <div class="slider-label">
+                <span>😣 Pain Level:</span>
+                <span class="slider-value" id="severityValue">Mild</span>
+            </div>
+            <input 
+                type="range" 
+                min="1" 
+                max="3" 
+                value="1" 
+                class="slider" 
+                id="severity"
+                oninput="updateSeverity(this.value)"
+            />
+            <div class="slider-markers">
+                <span>Mild</span>
+                <span>Moderate</span>
+                <span>Severe</span>
+            </div>
+        </div>
+
+        <button class="submit-btn" onclick="checkSymptoms()" id="submitBtn">
+            🔍 Analyze Symptoms with AI
+        </button>
+
+        <div class="disclaimer">
+            ⚠️ <strong>Disclaimer:</strong> This is an AI-powered guidance tool and not a replacement for professional medical advice. 
+            Please consult a doctor for accurate diagnosis and treatment.
+        </div>
+    </div>
+
+    <!-- Loading State -->
+    <div class="loading" id="loadingState">
+        <div class="spinner"></div>
+        <p style="color: #0b5ed7; font-weight: 600; font-size: 18px;">Analyzing your symptoms...</p>
+        <p style="color: #666; font-size: 16px; margin-top: 10px;">This may take a few seconds</p>
+    </div>
+
+    <!-- Response Card -->
+    <div class="response-card" id="responseCard">
+        <div id="urgencyBadge"></div>
+        <h2 style="color: #0b5ed7; margin-bottom: 20px;">🩺 Health Analysis Results</h2>
+        <div class="response-content" id="responseContent"></div>
+
+        <div class="action-buttons">
+            <button class="action-btn primary" onclick="findDoctors()">
+                👨‍⚕️ Find Nearby Doctors
+            </button>
+            <button class="action-btn secondary" onclick="checkAnother()">
+                🔄 Check Again
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Session check
+    const name = sessionStorage.getItem("am_name");
+    const mobile = sessionStorage.getItem("am_mobile");
+
+    if (!name || !mobile) {
+        alert("⚠️ Session expired. Please login again.");
+        window.location.href = "index.html";
+    }
+
+    // Voice Recognition Setup
+    let recognition = null;
+    let isListening = false;
+    let finalTranscript = '';
+
+    // Check for browser support
+    if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        recognition = new SpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'hi-IN';
+
+        recognition.onstart = function() {
+            isListening = true;
+            document.getElementById('voiceBtn').classList.add('listening');
+            document.getElementById('voiceStatusText').textContent = 'Listening... Speak now';
+        };
+
+        recognition.onresult = function(event) {
+            let interimTranscript = '';
+            
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const transcript = event.results[i][0].transcript;
+                if (event.results[i].isFinal) {
+                    finalTranscript += transcript + ' ';
+                } else {
+                    interimTranscript += transcript;
+                }
+            }
+
+            document.getElementById('symptoms').value = finalTranscript + interimTranscript;
+        };
+
+        recognition.onerror = function(event) {
+            console.error('Speech recognition error:', event.error);
+            if (event.error === 'no-speech') {
+                alert('🎤 No speech detected. Please try again.');
+            } else if (event.error === 'not-allowed') {
+                alert('🎤 Microphone access denied. Please allow microphone access in your browser settings.');
+            }
+            stopVoiceRecording();
+        };
+
+        recognition.onend = function() {
+            if (isListening) {
+                recognition.start();
+            }
+        };
+    }
+
+    function toggleVoiceRecording() {
+        if (!recognition) {
+            alert('⚠️ Voice recognition not supported in your browser');
+            return;
+        }
+
+        if (isListening) {
+            stopVoiceRecording();
+        } else {
+            startVoiceRecording();
+        }
+    }
+
+    function startVoiceRecording() {
+        try {
+            finalTranscript = document.getElementById('symptoms').value || '';
+            recognition.start();
+        } catch (error) {
+            console.error('Error starting recognition:', error);
+        }
+    }
+
+    function stopVoiceRecording() {
+        if (recognition && isListening) {
+            isListening = false;
+            recognition.stop();
+            document.getElementById('voiceBtn').classList.remove('listening');
+            document.getElementById('voiceStatusText').textContent = '';
+        }
+    }
+
+    function goBack() {
+        if (isListening) {
+            stopVoiceRecording();
+        }
+        window.location.href = "dashboard.html";
+    }
+
+    function updateDuration(value) {
+        const days = parseInt(value);
+        let text = '';
+        if (days === 1) text = '1 day';
+        else if (days <= 7) text = `${days} days`;
+        else if (days <= 14) text = `${Math.floor(days/7)} week${Math.floor(days/7) > 1 ? 's' : ''}`;
+        else text = `${days} days`;
+        document.getElementById('durationValue').textContent = text;
+    }
+
+    function updateSeverity(value) {
+        const severities = {
+            '1': 'Mild',
+            '2': 'Moderate',
+            '3': 'Severe'
+        };
+        document.getElementById('severityValue').textContent = severities[value];
+    }
+
+    async function checkSymptoms() {
+        const symptoms = document.getElementById('symptoms').value.trim();
+        const durationSlider = document.getElementById('duration').value;
+        const severitySlider = document.getElementById('severity').value;
+
+        if (!symptoms) {
+            alert('⚠️ Please describe your symptoms using voice or text');
+            return;
+        }
+
+        if (isListening) {
+            stopVoiceRecording();
+        }
+
+        // Show loading
+        document.getElementById('mainCard').style.display = 'none';
+        document.getElementById('responseCard').classList.remove('show');
+        document.getElementById('loadingState').style.display = 'block';
+
+        const submitBtn = document.getElementById('submitBtn');
+        submitBtn.disabled = true;
+
+        // Convert slider values to API format
+        let duration = 'few_hours';
+        if (durationSlider <= 1) duration = '1_day';
+        else if (durationSlider <= 3) duration = '2-3_days';
+        else if (durationSlider <= 7) duration = '4-7_days';
+        else if (durationSlider <= 14) duration = '1-2_weeks';
+        else duration = 'more_than_2_weeks';
+
+        const severityMap = {
+            '1': 'mild',
+            '2': 'moderate',
+            '3': 'severe'
+        };
+        const severity = severityMap[severitySlider];
+
+        try {
+            const response = await fetch('/api/symptom-check', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    symptoms,
+                    duration,
+                    severity
+                })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                displayResponse(data);
+            } else {
+                throw new Error(data.error || 'Analysis failed');
+            }
+
+        } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Unable to analyze symptoms. Please try again.');
+            document.getElementById('mainCard').style.display = 'block';
+        } finally {
+            document.getElementById('loadingState').style.display = 'none';
+            submitBtn.disabled = false;
+        }
+    }
+
+    function displayResponse(data) {
+        document.getElementById('responseCard').classList.add('show');
+
+        const urgencyBadge = document.getElementById('urgencyBadge');
+        const urgencyClass = data.urgencyLevel.toLowerCase();
+        urgencyBadge.className = `urgency-badge ${urgencyClass}`;
+        urgencyBadge.innerHTML = `
+            ${data.urgencyLevel === 'URGENT' ? '🚨' : data.urgencyLevel === 'HIGH' ? '⚠️' : '✅'} 
+            ${data.urgencyLevel} Priority
+        `;
+
+        document.getElementById('responseContent').textContent = data.response;
+
+        if (data.urgencyLevel === 'URGENT') {
+            setTimeout(() => {
+                if (confirm('🚨 URGENT situation detected! Do you want emergency assistance?')) {
+                    alert('📞 Please call 108 immediately for emergency services!');
+                }
+            }, 1000);
+        }
+
+        document.getElementById('responseCard').scrollIntoView({ behavior: 'smooth' });
+    }
+
+    function checkAnother() {
+        document.getElementById('symptoms').value = '';
+        document.getElementById('duration').value = 3;
+        document.getElementById('severity').value = 1;
+        finalTranscript = '';
+        updateDuration(3);
+        updateSeverity(1);
+        document.getElementById('responseCard').classList.remove('show');
+        document.getElementById('mainCard').style.display = 'block';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    function findDoctors() {
+        alert('🩺 Redirecting to Aarogya Connect...\n\nThis will help you find nearby doctors.');
+    }
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', function() {
+        if (isListening) {
+            stopVoiceRecording();
+        }
+    });
+</script>
+
+</body>
+</html>

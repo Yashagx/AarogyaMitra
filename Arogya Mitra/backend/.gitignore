@@ -9,3 +9,6 @@ views/
 *.log
 .DS_Store
 *.sqlite
+check-models.js
+
+

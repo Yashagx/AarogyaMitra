@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<script src="js/lang.js"></script>
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -437,9 +436,14 @@
 
         try {
             const response = await fetch('/api/lab-reports');
+            
+            if (!response.ok) {
+                throw new Error('Failed to load lab reports');
+            }
+            
             const reports = await response.json();
 
-            if (reports.length === 0) {
+            if (!Array.isArray(reports) || reports.length === 0) {
                 container.innerHTML = `
                     <div class="empty-state">
                         <div class="icon">🧪</div>

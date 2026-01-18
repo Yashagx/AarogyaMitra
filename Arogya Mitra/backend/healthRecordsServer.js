@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename);
 
 // Create uploads directory structure
 const UPLOADS_DIR = path.join(__dirname, '../uploads');
+
 const createUploadDirs = () => {
     ['health-records', 'prescriptions', 'lab-reports'].forEach(dir => {
         const fullPath = path.join(UPLOADS_DIR, dir);
@@ -70,7 +71,9 @@ export function initializeHealthRecordsTables(db) {
                 uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
-        `);
+        `, (err) => {
+            if (err) console.error('Error creating health_records table:', err);
+        });
 
         // Prescriptions table
         db.run(`
@@ -93,7 +96,9 @@ export function initializeHealthRecordsTables(db) {
                 uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
-        `);
+        `, (err) => {
+            if (err) console.error('Error creating prescriptions table:', err);
+        });
 
         // Lab Reports table
         db.run(`
@@ -115,71 +120,99 @@ export function initializeHealthRecordsTables(db) {
                 uploaded_at TEXT DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY(user_id) REFERENCES users(id)
             )
-        `);
+        `, (err) => {
+            if (err) console.error('Error creating lab_reports table:', err);
+        });
     });
 
     console.log("✅ Health Records tables initialized");
 }
 
+// Helper function to get user ID from session or patient details
+async function getUserId(db, sessionUserId, patientName, patientMobile) {
+    return new Promise((resolve, reject) => {
+        if (sessionUserId) {
+            // For logged-in users
+            resolve(sessionUserId);
+        } else if (patientName && patientMobile) {
+            // For admin uploads - find user by name and mobile
+            db.get(
+                'SELECT id FROM users WHERE name = ? AND mobile = ?',
+                [patientName, patientMobile],
+                (err, row) => {
+                    if (err) {
+                        reject(err);
+                    } else if (row) {
+                        resolve(row.id);
+                    } else {
+                        reject(new Error('Patient not found'));
+                    }
+                }
+            );
+        } else {
+            reject(new Error('No user identification provided'));
+        }
+    });
+}
+
 // Register routes
 export function registerHealthRecordsRoutes(app, db) {
     
-    // Serve uploaded files
-    app.use('/uploads', (req, res, next) => {
-        if (!req.session.userId) {
-            return res.status(401).json({ error: 'Unauthorized' });
-        }
-        next();
-    }, express.static(UPLOADS_DIR));
-
     // ================= HEALTH RECORDS ROUTES =================
     
     // Upload health record
-    app.post('/api/health-records/upload', upload.single('file'), (req, res) => {
-        if (!req.session.userId) {
-            return res.status(401).json({ error: 'Session expired' });
-        }
+    app.post('/api/health-records/upload', upload.single('file'), async (req, res) => {
+        try {
+            const { title, description, uploadedBy, patientName, patientMobile } = req.body;
+            const file = req.file;
 
-        const { title, description, uploadedBy } = req.body;
-        const file = req.file;
-
-        if (!file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        // Get user details
-        db.get('SELECT name, mobile FROM users WHERE id = ?', [req.session.userId], (err, user) => {
-            if (err || !user) {
-                return res.status(404).json({ error: 'User not found' });
+            if (!file) {
+                return res.status(400).json({ error: 'No file uploaded' });
             }
 
-            db.run(`
-                INSERT INTO health_records 
-                (user_id, user_name, user_mobile, title, description, category, file_name, file_path, file_type, file_size, uploaded_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-                req.session.userId,
-                user.name,
-                user.mobile,
-                title,
-                description || '',
-                'health-records',
-                file.originalname,
-                file.path,
-                file.mimetype,
-                file.size,
-                uploadedBy || 'user'
-            ], function(err) {
-                if (err) {
-                    return res.status(500).json({ error: 'Failed to save record' });
+            // Get user ID
+            const userId = await getUserId(db, req.session.userId, patientName, patientMobile);
+
+            // Get user details
+            db.get('SELECT name, mobile FROM users WHERE id = ?', [userId], (err, user) => {
+                if (err || !user) {
+                    // Delete uploaded file if user not found
+                    fs.unlink(file.path, () => {});
+                    return res.status(404).json({ error: 'User not found' });
                 }
-                res.json({ 
-                    success: true, 
-                    recordId: this.lastID,
-                    message: 'Health record uploaded successfully'
+
+                db.run(`
+                    INSERT INTO health_records 
+                    (user_id, user_name, user_mobile, title, description, category, file_name, file_path, file_type, file_size, uploaded_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    userId,
+                    user.name,
+                    user.mobile,
+                    title,
+                    description || '',
+                    'health-records',
+                    file.originalname,
+                    file.path,
+                    file.mimetype,
+                    file.size,
+                    uploadedBy || 'user'
+                ], function(err) {
+                    if (err) {
+                        console.error('Database error:', err);
+                        return res.status(500).json({ error: 'Failed to save record' });
+                    }
+                    res.json({ 
+                        success: true, 
+                        recordId: this.lastID,
+                        message: 'Health record uploaded successfully'
+                    });
                 });
             });
-        });
+        } catch (error) {
+            console.error('Upload error:', error);
+            res.status(500).json({ error: error.message || 'Upload failed' });
+        }
     });
 
     // Get all health records for user
@@ -195,6 +228,7 @@ export function registerHealthRecordsRoutes(app, db) {
             ORDER BY uploaded_at DESC
         `, [req.session.userId], (err, rows) => {
             if (err) {
+                console.error('Database error:', err);
                 return res.status(500).json({ error: 'Failed to fetch records' });
             }
             res.json(rows || []);
@@ -214,6 +248,10 @@ export function registerHealthRecordsRoutes(app, db) {
         `, [req.params.id, req.session.userId], (err, record) => {
             if (err || !record) {
                 return res.status(404).json({ error: 'Record not found' });
+            }
+
+            if (!fs.existsSync(record.file_path)) {
+                return res.status(404).json({ error: 'File not found' });
             }
 
             res.download(record.file_path, record.file_name);
@@ -244,6 +282,7 @@ export function registerHealthRecordsRoutes(app, db) {
                 DELETE FROM health_records WHERE id = ?
             `, [req.params.id], (err) => {
                 if (err) {
+                    console.error('Database error:', err);
                     return res.status(500).json({ error: 'Failed to delete record' });
                 }
                 res.json({ success: true, message: 'Record deleted successfully' });
@@ -253,54 +292,60 @@ export function registerHealthRecordsRoutes(app, db) {
 
     // ================= PRESCRIPTIONS ROUTES =================
     
-    app.post('/api/prescriptions/upload', upload.single('file'), (req, res) => {
-        if (!req.session.userId) {
-            return res.status(401).json({ error: 'Session expired' });
-        }
+    app.post('/api/prescriptions/upload', upload.single('file'), async (req, res) => {
+        try {
+            const { title, description, doctorName, hospitalName, prescriptionDate, medications, uploadedBy, patientName, patientMobile } = req.body;
+            const file = req.file;
 
-        const { title, description, doctorName, hospitalName, prescriptionDate, medications, uploadedBy } = req.body;
-        const file = req.file;
-
-        if (!file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        db.get('SELECT name, mobile FROM users WHERE id = ?', [req.session.userId], (err, user) => {
-            if (err || !user) {
-                return res.status(404).json({ error: 'User not found' });
+            if (!file) {
+                return res.status(400).json({ error: 'No file uploaded' });
             }
 
-            db.run(`
-                INSERT INTO prescriptions 
-                (user_id, user_name, user_mobile, title, description, doctor_name, hospital_name, 
-                prescription_date, medications, file_name, file_path, file_type, file_size, uploaded_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-                req.session.userId,
-                user.name,
-                user.mobile,
-                title,
-                description || '',
-                doctorName || '',
-                hospitalName || '',
-                prescriptionDate || new Date().toISOString().split('T')[0],
-                medications || '',
-                file.originalname,
-                file.path,
-                file.mimetype,
-                file.size,
-                uploadedBy || 'user'
-            ], function(err) {
-                if (err) {
-                    return res.status(500).json({ error: 'Failed to save prescription' });
+            // Get user ID
+            const userId = await getUserId(db, req.session.userId, patientName, patientMobile);
+
+            db.get('SELECT name, mobile FROM users WHERE id = ?', [userId], (err, user) => {
+                if (err || !user) {
+                    fs.unlink(file.path, () => {});
+                    return res.status(404).json({ error: 'User not found' });
                 }
-                res.json({ 
-                    success: true, 
-                    prescriptionId: this.lastID,
-                    message: 'Prescription uploaded successfully'
+
+                db.run(`
+                    INSERT INTO prescriptions 
+                    (user_id, user_name, user_mobile, title, description, doctor_name, hospital_name, 
+                    prescription_date, medications, file_name, file_path, file_type, file_size, uploaded_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    userId,
+                    user.name,
+                    user.mobile,
+                    title,
+                    description || '',
+                    doctorName || '',
+                    hospitalName || '',
+                    prescriptionDate || new Date().toISOString().split('T')[0],
+                    medications || '',
+                    file.originalname,
+                    file.path,
+                    file.mimetype,
+                    file.size,
+                    uploadedBy || 'user'
+                ], function(err) {
+                    if (err) {
+                        console.error('Database error:', err);
+                        return res.status(500).json({ error: 'Failed to save prescription' });
+                    }
+                    res.json({ 
+                        success: true, 
+                        prescriptionId: this.lastID,
+                        message: 'Prescription uploaded successfully'
+                    });
                 });
             });
-        });
+        } catch (error) {
+            console.error('Upload error:', error);
+            res.status(500).json({ error: error.message || 'Upload failed' });
+        }
     });
 
     app.get('/api/prescriptions', (req, res) => {
@@ -316,6 +361,7 @@ export function registerHealthRecordsRoutes(app, db) {
             ORDER BY prescription_date DESC, uploaded_at DESC
         `, [req.session.userId], (err, rows) => {
             if (err) {
+                console.error('Database error:', err);
                 return res.status(500).json({ error: 'Failed to fetch prescriptions' });
             }
             res.json(rows || []);
@@ -335,6 +381,11 @@ export function registerHealthRecordsRoutes(app, db) {
             if (err || !record) {
                 return res.status(404).json({ error: 'Prescription not found' });
             }
+
+            if (!fs.existsSync(record.file_path)) {
+                return res.status(404).json({ error: 'File not found' });
+            }
+
             res.download(record.file_path, record.file_name);
         });
     });
@@ -358,6 +409,7 @@ export function registerHealthRecordsRoutes(app, db) {
 
             db.run(`DELETE FROM prescriptions WHERE id = ?`, [req.params.id], (err) => {
                 if (err) {
+                    console.error('Database error:', err);
                     return res.status(500).json({ error: 'Failed to delete prescription' });
                 }
                 res.json({ success: true, message: 'Prescription deleted successfully' });
@@ -367,53 +419,59 @@ export function registerHealthRecordsRoutes(app, db) {
 
     // ================= LAB REPORTS ROUTES =================
     
-    app.post('/api/lab-reports/upload', upload.single('file'), (req, res) => {
-        if (!req.session.userId) {
-            return res.status(401).json({ error: 'Session expired' });
-        }
+    app.post('/api/lab-reports/upload', upload.single('file'), async (req, res) => {
+        try {
+            const { title, description, testType, labName, testDate, uploadedBy, patientName, patientMobile } = req.body;
+            const file = req.file;
 
-        const { title, description, testType, labName, testDate, uploadedBy } = req.body;
-        const file = req.file;
-
-        if (!file) {
-            return res.status(400).json({ error: 'No file uploaded' });
-        }
-
-        db.get('SELECT name, mobile FROM users WHERE id = ?', [req.session.userId], (err, user) => {
-            if (err || !user) {
-                return res.status(404).json({ error: 'User not found' });
+            if (!file) {
+                return res.status(400).json({ error: 'No file uploaded' });
             }
 
-            db.run(`
-                INSERT INTO lab_reports 
-                (user_id, user_name, user_mobile, title, description, test_type, lab_name, 
-                test_date, file_name, file_path, file_type, file_size, uploaded_by)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            `, [
-                req.session.userId,
-                user.name,
-                user.mobile,
-                title,
-                description || '',
-                testType || '',
-                labName || '',
-                testDate || new Date().toISOString().split('T')[0],
-                file.originalname,
-                file.path,
-                file.mimetype,
-                file.size,
-                uploadedBy || 'user'
-            ], function(err) {
-                if (err) {
-                    return res.status(500).json({ error: 'Failed to save lab report' });
+            // Get user ID
+            const userId = await getUserId(db, req.session.userId, patientName, patientMobile);
+
+            db.get('SELECT name, mobile FROM users WHERE id = ?', [userId], (err, user) => {
+                if (err || !user) {
+                    fs.unlink(file.path, () => {});
+                    return res.status(404).json({ error: 'User not found' });
                 }
-                res.json({ 
-                    success: true, 
-                    reportId: this.lastID,
-                    message: 'Lab report uploaded successfully'
+
+                db.run(`
+                    INSERT INTO lab_reports 
+                    (user_id, user_name, user_mobile, title, description, test_type, lab_name, 
+                    test_date, file_name, file_path, file_type, file_size, uploaded_by)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                `, [
+                    userId,
+                    user.name,
+                    user.mobile,
+                    title,
+                    description || '',
+                    testType || '',
+                    labName || '',
+                    testDate || new Date().toISOString().split('T')[0],
+                    file.originalname,
+                    file.path,
+                    file.mimetype,
+                    file.size,
+                    uploadedBy || 'user'
+                ], function(err) {
+                    if (err) {
+                        console.error('Database error:', err);
+                        return res.status(500).json({ error: 'Failed to save lab report' });
+                    }
+                    res.json({ 
+                        success: true, 
+                        reportId: this.lastID,
+                        message: 'Lab report uploaded successfully'
+                    });
                 });
             });
-        });
+        } catch (error) {
+            console.error('Upload error:', error);
+            res.status(500).json({ error: error.message || 'Upload failed' });
+        }
     });
 
     app.get('/api/lab-reports', (req, res) => {
@@ -429,6 +487,7 @@ export function registerHealthRecordsRoutes(app, db) {
             ORDER BY test_date DESC, uploaded_at DESC
         `, [req.session.userId], (err, rows) => {
             if (err) {
+                console.error('Database error:', err);
                 return res.status(500).json({ error: 'Failed to fetch lab reports' });
             }
             res.json(rows || []);
@@ -448,6 +507,11 @@ export function registerHealthRecordsRoutes(app, db) {
             if (err || !record) {
                 return res.status(404).json({ error: 'Lab report not found' });
             }
+
+            if (!fs.existsSync(record.file_path)) {
+                return res.status(404).json({ error: 'File not found' });
+            }
+
             res.download(record.file_path, record.file_name);
         });
     });
@@ -471,6 +535,7 @@ export function registerHealthRecordsRoutes(app, db) {
 
             db.run(`DELETE FROM lab_reports WHERE id = ?`, [req.params.id], (err) => {
                 if (err) {
+                    console.error('Database error:', err);
                     return res.status(500).json({ error: 'Failed to delete lab report' });
                 }
                 res.json({ success: true, message: 'Lab report deleted successfully' });
@@ -480,6 +545,3 @@ export function registerHealthRecordsRoutes(app, db) {
 
     console.log("✅ Health Records routes registered");
 }
-
-// Import express for static file serving
-import express from 'express';

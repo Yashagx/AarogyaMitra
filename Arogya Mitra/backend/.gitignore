@@ -1,3 +1,13 @@
 .env
+New Text Document.txt
+controllers/
+routes/
+services/
+utils/
+views/
+*.log
+.DS_Store
+*.sqlite
+check-models.js
 
 

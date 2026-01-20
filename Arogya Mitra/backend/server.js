@@ -6,11 +6,16 @@ import path from "path";
 import { fileURLToPath } from "url";
 import sqlite3 from "sqlite3";
 import session from "express-session";
+import dotenv from "dotenv";
 
 import { initializeHealthRecordsTables, registerHealthRecordsRoutes } from "./healthRecordsServer.js";
 import { initializeSymptomTables, registerSymptomRoutes } from "./symptomServer.js";
 import { registerTranslationRoutes } from "./translationServer.js";
 import { initializeAarogyaConnectTables, registerAarogyaConnectRoutes } from "./aarogyaconnect.js";
+import { registerAnalyticsRoutes } from "./analyticsServer.js";
+
+// Load environment variables
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -58,6 +63,15 @@ const INDIAN_STATES = [
     "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", "Uttarakhand",
     "West Bengal"
 ];
+
+// ================= GROQ API KEY SETUP =================
+const GROQ_API_KEYS = [
+    process.env.GROQ_API_KEY_1,
+    process.env.GROQ_API_KEY_2,
+    process.env.GROQ_API_KEY_3
+].filter(Boolean); // Remove any undefined keys
+
+let currentKeyIndex = 0;
 
 // ================= INITIALIZE ALL TABLES =================
 db.serialize(() => {
@@ -111,6 +125,20 @@ function generateAbhaId(seed) {
 function getRandomHomeState(seed) {
     return INDIAN_STATES[seed % INDIAN_STATES.length];
 }
+
+// ================= GROQ API KEY ENDPOINT =================
+app.get("/api/groq-key", (req, res) => {
+    if (GROQ_API_KEYS.length === 0) {
+        console.error("❌ No Groq API keys configured in .env file");
+        return res.status(500).json({ error: "API key not configured" });
+    }
+    
+    // Round-robin key selection for load balancing
+    const apiKey = GROQ_API_KEYS[currentKeyIndex];
+    currentKeyIndex = (currentKeyIndex + 1) % GROQ_API_KEYS.length;
+    
+    res.json({ key: apiKey });
+});
 
 // ================= AUTH ROUTES =================
 app.get("/auth/abha/login", (req, res) => {
@@ -250,13 +278,15 @@ registerTranslationRoutes(app);
 registerSymptomRoutes(app, db);
 registerAarogyaConnectRoutes(app, db);
 registerHealthRecordsRoutes(app, db);
+registerAnalyticsRoutes(app, db);
 
 // ================= TEST ROUTE =================
 app.get('/api/test', (req, res) => {
     res.json({ 
         status: 'OK', 
         message: 'Server is running',
-        session: req.session.userId ? 'Active' : 'None'
+        session: req.session.userId ? 'Active' : 'None',
+        groqKeysConfigured: GROQ_API_KEYS.length
     });
 });
 
@@ -264,9 +294,14 @@ app.get('/api/test', (req, res) => {
 app.listen(PORT, () => {
     console.log(`🚀 Aarogya Mitra running on http://localhost:${PORT}`);
     console.log('📋 Available routes:');
+    console.log('   - GET  /api/groq-key');
     console.log('   - POST /api/appointments/book');
     console.log('   - GET  /api/appointments/:bookingId');
     console.log('   - POST /api/hospitals/nearby');
     console.log('   - GET  /api/symptoms/recent');
     console.log('   - GET  /api/appointments/stats');
+    console.log('   - GET  /api/analytics/symptoms');
+    console.log('   - GET  /api/analytics/appointments');
+    console.log('   - GET  /api/analytics/comprehensive');
+    console.log(`🔐 Groq API Keys configured: ${GROQ_API_KEYS.length}`);
 });

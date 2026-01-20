@@ -1,7 +1,6 @@
 .env
 New Text Document.txt
 controllers/
-node_modules/
 routes/
 services/
 utils/

@@ -13,6 +13,8 @@ import { initializeSymptomTables, registerSymptomRoutes } from "./symptomServer.
 import { registerTranslationRoutes } from "./translationServer.js";
 import { initializeAarogyaConnectTables, registerAarogyaConnectRoutes } from "./aarogyaconnect.js";
 import { registerAnalyticsRoutes } from "./analyticsServer.js";
+import { initializeMedicineTables, registerMedicineRoutes } from "./medicineAvailabilityServer.js";
+
 
 // Load environment variables
 dotenv.config();
@@ -109,6 +111,7 @@ db.serialize(() => {
     initializeSymptomTables(db);
     initializeAarogyaConnectTables(db);
     initializeHealthRecordsTables(db);
+    initializeMedicineTables(db);
 });
 
 // ================= UTILITY FUNCTIONS =================
@@ -279,6 +282,9 @@ registerSymptomRoutes(app, db);
 registerAarogyaConnectRoutes(app, db);
 registerHealthRecordsRoutes(app, db);
 registerAnalyticsRoutes(app, db);
+registerMedicineRoutes(app, db);
+
+
 
 // ================= TEST ROUTE =================
 app.get('/api/test', (req, res) => {

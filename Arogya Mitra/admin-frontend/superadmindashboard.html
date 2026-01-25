@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin Dashboard | Aarogya Mitra</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            min-height: 100vh;
+        }
+
+        /* SIDEBAR */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: 260px;
+            height: 100vh;
+            background: linear-gradient(180deg, #0b5ed7 0%, #0056b3 100%);
+            padding: 20px 0;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+
+        .sidebar-header {
+            padding: 0 20px 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            margin-bottom: 20px;
+        }
+
+        .sidebar-brand {
+            color: white;
+            font-size: 20px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .sidebar-role {
+            color: rgba(255,255,255,0.8);
+            font-size: 12px;
+            margin-top: 5px;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+        }
+
+        .sidebar-menu li {
+            margin: 5px 10px;
+        }
+
+        .sidebar-menu a {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 12px 15px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            border-radius: 8px;
+            transition: all 0.3s;
+            font-size: 14px;
+        }
+
+        .sidebar-menu a:hover, .sidebar-menu a.active {
+            background: rgba(255,255,255,0.15);
+            color: white;
+        }
+
+        /* MAIN CONTENT */
+        .main-content {
+            margin-left: 260px;
+        }
+
+        /* TOP NAV */
+        .top-nav {
+            background: white;
+            padding: 16px 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 999;
+        }
+
+        .page-title {
+            font-size: 24px;
+            color: #333;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: #0b5ed7;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: #c82333;
+        }
+
+        /* CONTAINER */
+        .container {
+            padding: 30px;
+        }
+
+        /* STATS GRID */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+        }
+
+        .stat-icon.blue { background: #e3f2fd; color: #0b5ed7; }
+        .stat-icon.green { background: #e7f5ec; color: #198754; }
+        .stat-icon.orange { background: #fff3cd; color: #fd7e14; }
+        .stat-icon.red { background: #ffe8e8; color: #dc3545; }
+
+        .stat-info h4 {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .stat-info p {
+            font-size: 28px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        /* SECTION */
+        .section {
+            background: white;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 25px;
+        }
+
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .section-title {
+            font-size: 20px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #0b5ed7;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #0956b8;
+        }
+
+        .btn-success {
+            background: #198754;
+            color: white;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 13px;
+        }
+
+        /* TABLE */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f8f9fa;
+        }
+
+        th {
+            padding: 12px;
+            text-align: left;
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        td {
+            padding: 12px;
+            border-bottom: 1px solid #dee2e6;
+            font-size: 14px;
+            color: #555;
+        }
+
+        tr:hover {
+            background: #f8f9fa;
+        }
+
+        .badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #e7f5ec;
+            color: #198754;
+        }
+
+        .badge-danger {
+            background: #ffe8e8;
+            color: #dc3545;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        /* MODAL */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            padding: 20px 25px;
+            border-bottom: 1px solid #dee2e6;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .modal-title {
+            font-size: 20px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .modal-close {
+            background: #f8f9fa;
+            border: none;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+        }
+
+        .modal-body {
+            padding: 25px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #333;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .form-group input, 
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-group input:focus, 
+        .form-group select:focus {
+            outline: none;
+            border-color: #0b5ed7;
+        }
+
+        /* LOADING */
+        .loading {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #0b5ed7;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .tabs {
+            display: flex;
+            gap: 5px;
+            margin-bottom: 20px;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .tab {
+            padding: 12px 20px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            color: #666;
+            position: relative;
+        }
+
+        .tab.active {
+            color: #0b5ed7;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            width: 100%;
+            height: 3px;
+            background: #0b5ed7;
+        }
+    </style>
+</head>
+<body>
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-brand">
+                <i class="fas fa-heartbeat"></i>
+                Aarogya Mitra
+            </div>
+            <div class="sidebar-role">Super Admin Panel</div>
+        </div>
+        
+        <ul class="sidebar-menu">
+            <li><a href="#" class="active" data-page="dashboard"><i class="fas fa-home"></i> Dashboard</a></li>
+            <li><a href="#" data-page="users"><i class="fas fa-users-cog"></i> Admin Users</a></li>
+            <li><a href="#" data-page="doctors"><i class="fas fa-user-md"></i> Doctors</a></li>
+            <li><a href="#" data-page="hospitals"><i class="fas fa-hospital"></i> Hospitals</a></li>
+            <li><a href="#" data-page="pharmacies"><i class="fas fa-pills"></i> Pharmacies</a></li>
+            <li><a href="#" data-page="audit"><i class="fas fa-clipboard-list"></i> Audit Logs</a></li>
+        </ul>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <div class="main-content">
+        <!-- TOP NAV -->
+        <nav class="top-nav">
+            <h1 class="page-title" id="pageTitle">Dashboard</h1>
+            <div class="user-info">
+                <div class="user-avatar" id="userAvatar">SA</div>
+                <span id="userName">Admin</span>
+                <button class="logout-btn" onclick="logout()">
+                    <i class="fas fa-sign-out-alt"></i> Logout
+                </button>
+            </div>
+        </nav>
+
+        <!-- CONTAINER -->
+        <div class="container">
+            <!-- DASHBOARD PAGE -->
+            <div id="dashboardPage">
+                <!-- STATS -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon blue">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Total Users</h4>
+                            <p id="totalUsers">-</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon green">
+                            <i class="fas fa-user-md"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Total Doctors</h4>
+                            <p id="totalDoctors">-</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon orange">
+                            <i class="fas fa-hospital"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Total Hospitals</h4>
+                            <p id="totalHospitals">-</p>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon red">
+                            <i class="fas fa-calendar-alt"></i>
+                        </div>
+                        <div class="stat-info">
+                            <h4>Today's Appointments</h4>
+                            <p id="todayAppointments">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- PENDING APPROVALS -->
+                <div class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">Pending Approvals</h3>
+                    </div>
+                    <div class="tabs">
+                        <button class="tab active" data-tab="doctors">Doctors (<span id="unverifiedDoctorsCount">0</span>)</button>
+                        <button class="tab" data-tab="hospitals">Hospitals (<span id="unverifiedHospitalsCount">0</span>)</button>
+                    </div>
+                    <div id="approvalsContent">
+                        <div class="loading">
+                            <div class="spinner"></div>
+                            <p>Loading...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- OTHER PAGES (hidden by default) -->
+            <div id="usersPage" style="display: none;">
+                <div class="section">
+                    <div class="section-header">
+                        <h3 class="section-title">Admin Users</h3>
+                        <button class="btn btn-primary" onclick="showCreateUserModal()">
+                            <i class="fas fa-plus"></i> Create User
+                        </button>
+                    </div>
+                    <table id="usersTable">
+                        <thead>
+                            <tr>
+                                <th>Username</th>
+                                <th>Full Name</th>
+                                <th>Role</th>
+                                <th>Email</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="usersTableBody">
+                            <tr><td colspan="6" class="loading"><div class="spinner"></div></td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CREATE USER MODAL -->
+    <div class="modal" id="createUserModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Create Admin User</h3>
+                <button class="modal-close" onclick="closeModal('createUserModal')">×</button>
+            </div>
+            <form class="modal-body" id="createUserForm">
+                <div class="form-group">
+                    <label>Username *</label>
+                    <input type="text" id="newUsername" required>
+                </div>
+                <div class="form-group">
+                    <label>Password *</label>
+                    <input type="password" id="newPassword" required>
+                </div>
+                <div class="form-group">
+                    <label>Full Name *</label>
+                    <input type="text" id="newFullName" required>
+                </div>
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="newEmail">
+                </div>
+                <div class="form-group">
+                    <label>Mobile</label>
+                    <input type="tel" id="newMobile">
+                </div>
+                <div class="form-group">
+                    <label>Role *</label>
+                    <select id="newRole" required>
+                        <option value="">Select Role</option>
+                        <option value="super_admin">Super Admin</option>
+                        <option value="aarogya_operator">Aarogya Operator</option>
+                        <option value="doctor">Doctor</option>
+                        <option value="hospital_admin">Hospital Admin</option>
+                        <option value="pharmacy_operator">Pharmacy Operator</option>
+                        <option value="lab_operator">Lab Operator</option>
+                    </select>
+                </div>
+                <button type="submit" class="btn btn-primary">Create User</button>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:5001/api/admin';
+        let currentTab = 'doctors';
+
+        // Check authentication
+        const token = localStorage.getItem('adminToken');
+        const adminUser = JSON.parse(localStorage.getItem('adminUser') || '{}');
+
+        if (!token || adminUser.role !== 'super_admin') {
+            window.location.href = 'index.html';
+        }
+
+        // Set user info
+        if (adminUser.fullName) {
+            document.getElementById('userName').textContent = adminUser.fullName.split(' ')[0];
+            document.getElementById('userAvatar').textContent = adminUser.fullName.charAt(0).toUpperCase();
+        }
+
+        // Load dashboard on page load
+        loadDashboard();
+
+        // Navigation
+        document.querySelectorAll('.sidebar-menu a').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const page = e.currentTarget.getAttribute('data-page');
+                navigateTo(page);
+            });
+        });
+
+        function navigateTo(page) {
+            // Update active menu
+            document.querySelectorAll('.sidebar-menu a').forEach(a => a.classList.remove('active'));
+            document.querySelector(`[data-page="${page}"]`).classList.add('active');
+
+            // Hide all pages
+            document.querySelectorAll('[id$="Page"]').forEach(p => p.style.display = 'none');
+
+            // Show selected page
+            document.getElementById(`${page}Page`).style.display = 'block';
+
+            // Update page title
+            const titles = {
+                dashboard: 'Dashboard',
+                users: 'Admin Users',
+                doctors: 'Doctors',
+                hospitals: 'Hospitals',
+                pharmacies: 'Pharmacies',
+                audit: 'Audit Logs'
+            };
+            document.getElementById('pageTitle').textContent = titles[page] || page;
+
+            // Load page data
+            if (page === 'users') loadUsers();
+        }
+
+        async function loadDashboard() {
+            try {
+                const response = await fetch(`${API_BASE}/super/dashboard/stats`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!response.ok) throw new Error('Failed to load stats');
+
+                const stats = await response.json();
+
+                document.getElementById('totalUsers').textContent = stats.totalUsers || 0;
+                document.getElementById('totalDoctors').textContent = stats.totalDoctors || 0;
+                document.getElementById('totalHospitals').textContent = stats.totalHospitals || 0;
+                document.getElementById('todayAppointments').textContent = stats.todayAppointments || 0;
+                document.getElementById('unverifiedDoctorsCount').textContent = stats.unverifiedDoctors || 0;
+                document.getElementById('unverifiedHospitalsCount').textContent = stats.unverifiedHospitals || 0;
+
+                loadPendingApprovals();
+            } catch (error) {
+                console.error('Dashboard load error:', error);
+            }
+        }
+
+        async function loadPendingApprovals() {
+            try {
+                const endpoint = currentTab === 'doctors' ? 'doctors' : 'hospitals';
+                const response = await fetch(`${API_BASE}/super/${endpoint}?verified=false`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const data = await response.json();
+                displayApprovals(data);
+            } catch (error) {
+                console.error('Load approvals error:', error);
+            }
+        }
+
+        function displayApprovals(items) {
+            const container = document.getElementById('approvalsContent');
+            
+            if (!items || items.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #999; padding: 30px;">No pending approvals</p>';
+                return;
+            }
+
+            const html = `
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>${currentTab === 'doctors' ? 'Specialization' : 'Type'}</th>
+                            <th>Contact</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${items.map(item => `
+                            <tr>
+                                <td>${item.name}</td>
+                                <td>${currentTab === 'doctors' ? item.specialization : item.type || '-'}</td>
+                                <td>${item.mobile || item.phone || '-'}</td>
+                                <td>
+                                    <button class="btn btn-success btn-sm" onclick="approveItem('${currentTab}', ${item.id})">
+                                        <i class="fas fa-check"></i> Approve
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" onclick="rejectItem('${currentTab}', ${item.id})">
+                                        <i class="fas fa-times"></i> Reject
+                                    </button>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            `;
+
+            container.innerHTML = html;
+        }
+
+        async function approveItem(type, id) {
+            if (!confirm(`Approve this ${type.slice(0, -1)}?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/super/${type}/${id}/verify`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ verified: true })
+                });
+
+                if (response.ok) {
+                    alert('Approved successfully!');
+                    loadDashboard();
+                }
+            } catch (error) {
+                console.error('Approve error:', error);
+                alert('Failed to approve');
+            }
+        }
+
+        async function rejectItem(type, id) {
+            if (!confirm(`Reject this ${type.slice(0, -1)}?`)) return;
+
+            try {
+                const response = await fetch(`${API_BASE}/super/${type}/${id}/verify`, {
+                    method: 'PUT',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ verified: false })
+                });
+
+                if (response.ok) {
+                    alert('Rejected successfully!');
+                    loadDashboard();
+                }
+            } catch (error) {
+                console.error('Reject error:', error);
+                alert('Failed to reject');
+            }
+        }
+
+        // Tab switching
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentTab = tab.getAttribute('data-tab');
+                loadPendingApprovals();
+            });
+        });
+
+        async function loadUsers() {
+            try {
+                const response = await fetch(`${API_BASE}/super/users`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                const users = await response.json();
+                displayUsers(users);
+            } catch (error) {
+                console.error('Load users error:', error);
+            }
+        }
+
+        function displayUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            
+            if (!users || users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: #999; padding: 30px;">No users found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.username}</td>
+                    <td>${user.full_name}</td>
+                    <td>${user.role.replace('_', ' ').toUpperCase()}</td>
+                    <td>${user.email || '-'}</td>
+                    <td>
+                        <span class="badge ${user.is_active ? 'badge-success' : 'badge-danger'}">
+                            ${user.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                    </td>
+                    <td>
+                        ${user.is_active ? 
+                            `<button class="btn btn-danger btn-sm" onclick="deactivateUser(${user.id})">Deactivate</button>` :
+                            `<button class="btn btn-success btn-sm" onclick="activateUser(${user.id})">Activate</button>`
+                        }
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function showCreateUserModal() {
+            document.getElementById('createUserModal').classList.add('active');
+        }
+
+        function closeModal(id) {
+            document.getElementById(id).classList.remove('active');
+        }
+
+        document.getElementById('createUserForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const userData = {
+                username: document.getElementById('newUsername').value,
+                password: document.getElementById('newPassword').value,
+                fullName: document.getElementById('newFullName').value,
+                email: document.getElementById('newEmail').value,
+                mobile: document.getElementById('newMobile').value,
+                role: document.getElementById('newRole').value
+            };
+
+            try {
+                const response = await fetch(`${API_BASE}/super/users`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(userData)
+                });
+
+                if (response.ok) {
+                    alert('User created successfully!');
+                    closeModal('createUserModal');
+                    e.target.reset();
+                    loadUsers();
+                } else {
+                    const error = await response.json();
+                    alert(error.error || 'Failed to create user');
+                }
+            } catch (error) {
+                console.error('Create user error:', error);
+                alert('Failed to create user');
+            }
+        });
+
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('adminToken');
+                localStorage.removeItem('adminUser');
+                localStorage.removeItem('adminRoleData');
+                window.location.href = 'index.html';
+            }
+        }
+    </script>
+</body>
+</html>

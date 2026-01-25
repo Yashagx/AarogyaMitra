@@ -146,7 +146,7 @@ async function makeGroqAPICall(prompt, temperature = 0.7, maxTokens = 800) {
 // ================= GEOAPIFY FUNCTIONS =================
 async function getCoordinatesFromAddress(address, pincode, state) {
     try {
-        const query = encodeURIComponent(`${address}, ${pincode}, ${state}, India`);
+        const query = encodeURIComponent(`${address || ''}, ${pincode}, ${state}, India`);
         const url = `https://api.geoapify.com/v1/geocode/search?text=${query}&apiKey=${GEOAPIFY_API_KEY}`;
         
         const response = await fetch(url);
@@ -184,34 +184,44 @@ function calculateDistance(lat1, lon1, lat2, lon2) {
     return Math.round(distance * 10) / 10;
 }
 
-// ================= SEARCH PHARMACIES =================
+// ================= SEARCH PHARMACIES (FIXED - BASED ON AAROGYACONNECT) =================
 async function searchNearbyPharmacies(latitude, longitude) {
     const allPharmacies = new Map();
     const categoryGroups = [
         'commercial.pharmacy',
         'healthcare.pharmacy',
-        'commercial.chemist'
+        'commercial.chemist',
+        'healthcare.chemist'
     ];
 
     const searches = [
         { radius: 1000, limit: 20 },
         { radius: 3000, limit: 20 },
-        { radius: 5000, limit: 15 }
+        { radius: 5000, limit: 20 },
+        { radius: 10000, limit: 15 }
     ];
 
     console.log('🔍 Searching for nearby pharmacies...');
+    console.log(`📍 User location: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}`);
 
     for (const category of categoryGroups) {
         for (const search of searches) {
             try {
                 const url = `https://api.geoapify.com/v2/places?categories=${category}&filter=circle:${longitude},${latitude},${search.radius}&bias=proximity:${longitude},${latitude}&limit=${search.limit}&apiKey=${GEOAPIFY_API_KEY}`;
                 
+                console.log(`Searching ${category} within ${search.radius}m...`);
                 const response = await fetch(url);
-                if (!response.ok) continue;
+                
+                if (!response.ok) {
+                    console.log(`Failed for ${category} at ${search.radius}m`);
+                    continue;
+                }
                 
                 const data = await response.json();
                 
                 if (data.features && data.features.length > 0) {
+                    console.log(`Found ${data.features.length} results for ${category}`);
+                    
                     data.features.forEach(feature => {
                         const props = feature.properties;
                         const coords = feature.geometry.coordinates;
@@ -219,6 +229,7 @@ async function searchNearbyPharmacies(latitude, longitude) {
                         
                         let name = props.name || 
                                    props.address_line1 || 
+                                   props.street ||
                                    'Medical Store';
                         
                         name = name.trim();
@@ -239,14 +250,15 @@ async function searchNearbyPharmacies(latitude, longitude) {
                                        `${props.street || ''} ${props.city || ''}`.trim() ||
                                        'Address not available';
                         
-                        if (!allPharmacies.has(key) && distance <= 10) {
+                        if (!allPharmacies.has(key) && distance <= 15) {
                             allPharmacies.set(key, {
                                 name: name,
                                 address: address,
                                 latitude: coords[1],
                                 longitude: coords[0],
                                 distance: distance,
-                                phone: phone
+                                phone: phone,
+                                category: category
                             });
                         }
                     });
@@ -255,7 +267,7 @@ async function searchNearbyPharmacies(latitude, longitude) {
                 await new Promise(resolve => setTimeout(resolve, 100));
                 
             } catch (error) {
-                console.error(`Search failed:`, error.message);
+                console.error(`Search failed for ${category}:`, error.message);
             }
             
             if (allPharmacies.size >= 15) break;
@@ -267,7 +279,7 @@ async function searchNearbyPharmacies(latitude, longitude) {
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 12);
     
-    console.log(`✅ Found ${results.length} pharmacies`);
+    console.log(`✅ Found ${results.length} unique pharmacies`);
     return results;
 }
 
@@ -379,6 +391,47 @@ function getFallbackMedicines() {
             requires_prescription: 0
         }
     ];
+}
+
+// ================= ANALYZE PRESCRIPTION WITH OCR =================
+async function analyzePrescriptionText(prescriptionText) {
+    try {
+        const prompt = `Analyze this prescription text and extract medicine information:
+
+Prescription Text:
+${prescriptionText}
+
+Extract all medicines mentioned with details:
+- medicine_name: Brand or generic name
+- dosage: Strength/dosage
+- frequency: How often to take
+- duration: How many days
+- instructions: Special instructions
+
+Return JSON array ONLY:
+[
+  {
+    "medicine_name": "...",
+    "dosage": "...",
+    "frequency": "...",
+    "duration": "...",
+    "instructions": "..."
+  }
+]
+
+If no medicines found, return empty array [].
+NO markdown, ONLY JSON.`;
+
+        const data = await makeGroqAPICall(prompt, 0.3, 1000);
+        let content = data.choices[0].message.content;
+        content = content.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+        
+        return JSON.parse(content);
+
+    } catch (error) {
+        console.error('Prescription analysis error:', error);
+        return [];
+    }
 }
 
 // ================= RECOMMEND MEDICINES FOR SYMPTOMS =================
@@ -495,13 +548,22 @@ export function registerMedicineRoutes(app, db) {
 
             const { pincode, state, district } = req.body;
             
+            console.log(`📍 Looking for pharmacies near: ${district}, ${pincode}, ${state}`);
+            
             const userCoords = await getCoordinatesFromAddress(district || '', pincode, state);
             
             if (!userCoords) {
+                console.log('❌ Geocoding failed');
                 return res.status(400).json({ error: 'Unable to locate address' });
             }
             
+            console.log(`✅ User coordinates: ${userCoords.latitude}, ${userCoords.longitude}`);
+            
             const pharmacies = await searchNearbyPharmacies(userCoords.latitude, userCoords.longitude);
+            
+            if (pharmacies.length === 0) {
+                return res.json({ pharmacies: [], message: 'No pharmacies found nearby' });
+            }
             
             // Generate inventory for each pharmacy
             for (let pharmacy of pharmacies) {
@@ -517,6 +579,28 @@ export function registerMedicineRoutes(app, db) {
         } catch (error) {
             console.error('Error:', error);
             res.status(500).json({ error: 'Failed to fetch pharmacies' });
+        }
+    });
+
+    // Analyze prescription image/text
+    app.post('/api/medicines/analyze-prescription', async (req, res) => {
+        try {
+            if (!req.session.userId) {
+                return res.status(401).json({ error: 'Unauthorized' });
+            }
+
+            const { prescriptionText } = req.body;
+
+            if (!prescriptionText) {
+                return res.status(400).json({ error: 'No prescription text provided' });
+            }
+
+            const medicines = await analyzePrescriptionText(prescriptionText);
+            
+            res.json({ medicines });
+        } catch (error) {
+            console.error('Prescription analysis error:', error);
+            res.status(500).json({ error: 'Failed to analyze prescription' });
         }
     });
 
